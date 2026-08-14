@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "5DFldWi6GOk=",
+  "dgSpecHash": "gDyKJSz6CK0=",
   "success": true,
-  "projectFilePath": "C:\\Khoa_Luan_Cu_Nhan\\TraSayKhoProject\\TraSayKho.API\\TraSayKho.API.csproj",
+  "projectFilePath": "C:\\Khoa_Luan_Cu_Nhan\\TraSayKhoProject\\Backend\\TraSayKho.API\\TraSayKho.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Van Khai\\.nuget\\packages\\azure.core\\1.50.0\\azure.core.1.50.0.nupkg.sha512",
     "C:\\Users\\Van Khai\\.nuget\\packages\\azure.identity\\1.17.1\\azure.identity.1.17.1.nupkg.sha512",

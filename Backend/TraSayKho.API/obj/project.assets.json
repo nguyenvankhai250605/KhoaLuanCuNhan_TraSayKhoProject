@@ -3638,11 +3638,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Khoa_Luan_Cu_Nhan\\TraSayKhoProject\\TraSayKho.API\\TraSayKho.API.csproj",
+      "projectUniqueName": "C:\\Khoa_Luan_Cu_Nhan\\TraSayKhoProject\\Backend\\TraSayKho.API\\TraSayKho.API.csproj",
       "projectName": "TraSayKho.API",
-      "projectPath": "C:\\Khoa_Luan_Cu_Nhan\\TraSayKhoProject\\TraSayKho.API\\TraSayKho.API.csproj",
+      "projectPath": "C:\\Khoa_Luan_Cu_Nhan\\TraSayKhoProject\\Backend\\TraSayKho.API\\TraSayKho.API.csproj",
       "packagesPath": "C:\\Users\\Van Khai\\.nuget\\packages\\",
-      "outputPath": "C:\\Khoa_Luan_Cu_Nhan\\TraSayKhoProject\\TraSayKho.API\\obj\\",
+      "outputPath": "C:\\Khoa_Luan_Cu_Nhan\\TraSayKhoProject\\Backend\\TraSayKho.API\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
