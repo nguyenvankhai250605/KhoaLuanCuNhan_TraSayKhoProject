@@ -80,6 +80,9 @@ Sau khi khởi động thành công, mở trình duyệt và truy cập:
 | Đơn hàng | `GET /api/DonHang`, `PUT /api/DonHang/{id}/trangthai` | Chỉ cập nhật trạng thái, không sửa/xóa toàn bộ đơn |
 | Khách hàng | `GET/PUT /api/KhachHang`, `PUT /api/KhachHang/{id}/trangthai` | Không tạo mới (khách tự đăng ký qua app), có khóa/mở khóa tài khoản |
 | Đánh giá | `GET/DELETE /api/DanhGia` | Chỉ đọc và xóa (kiểm duyệt), không tạo/sửa thay khách hàng |
+| Thống kê | `GET /api/ThongKe/tongquan`, `GET /api/ThongKe/doanhthu`, `GET /api/ThongKe/sanphambanchay` | Báo cáo doanh thu theo ngày, top sản phẩm bán chạy |
+| Hình ảnh sản phẩm | `GET/POST/DELETE /api/SanPham/{sanPhamId}/HinhAnhSanPham` | Upload/xóa ảnh, gắn theo từng sản phẩm |
+| Thông báo | `GET/POST /api/ThongBao` | Gửi thông báo cho 1 khách hàng hoặc toàn bộ khách hàng |
 
 > Xem chi tiết đầy đủ từng endpoint tại Swagger UI sau khi chạy ứng dụng.
 
