@@ -17,6 +17,9 @@ builder.Services.AddScoped<IKhachHangRepository, KhachHangRepository>();
 builder.Services.AddScoped<IDonHangRepository, DonHangRepository>();
 builder.Services.AddScoped<IKhuyenMaiRepository, KhuyenMaiRepository>();
 builder.Services.AddScoped<IDanhGiaRepository, DanhGiaRepository>();
+builder.Services.AddScoped<IThongKeRepository, ThongKeRepository>();
+builder.Services.AddScoped<IHinhAnhSanPhamRepository, HinhAnhSanPhamRepository>();
+builder.Services.AddScoped<IThongBaoRepository, ThongBaoRepository>();
 
 // ==== ĐĂNG KÝ SERVICE ====
 builder.Services.AddScoped<ISanPhamService, SanPhamService>();
@@ -25,6 +28,9 @@ builder.Services.AddScoped<IKhachHangService, KhachHangService>();
 builder.Services.AddScoped<IDonHangService, DonHangService>();
 builder.Services.AddScoped<IKhuyenMaiService, KhuyenMaiService>();
 builder.Services.AddScoped<IDanhGiaService, DanhGiaService>();
+builder.Services.AddScoped<IThongKeService, ThongKeService>();
+builder.Services.AddScoped<IHinhAnhSanPhamService, HinhAnhSanPhamService>();
+builder.Services.AddScoped<IThongBaoService, ThongBaoService>();
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -36,6 +42,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseStaticFiles();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

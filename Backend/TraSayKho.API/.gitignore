@@ -1,0 +1,5 @@
+bin/
+obj/
+*.user
+wwwroot/images/products/*
+!wwwroot/images/products/.gitkeep
