@@ -34,7 +34,22 @@ Ví dụ cấu hình dùng Windows Authentication:
 
 > Nếu tên server có dấu `\`, trong file JSON phải gõ **2 dấu `\\`** liền nhau (do quy tắc escape của JSON).
 
-### Bước 3: Khởi động ứng dụng
+### Bước 3: Cấu hình API Key cho Chatbot AI
+
+Chatbot sử dụng Gemini API để tư vấn sản phẩm. Mở Terminal tại `Backend/TraSayKho.API`, chạy:
+
+```bash
+dotnet user-secrets init
+dotnet user-secrets set "GeminiApi:ApiKey" "API_KEY_CUA_BAN"
+```
+
+> Lấy API key miễn phí tại: https://aistudio.google.com/apikey (đăng nhập bằng tài khoản Google, không cần thẻ thanh toán). Có thể dùng chung 1 key cho cả nhóm — liên hệ Khải để lấy key nếu chưa có.
+
+> ⚠️ **Không đặt API key trực tiếp trong `appsettings.json`** — lệnh `user-secrets` sẽ lưu key ở nơi an toàn ngoài project, tránh bị lộ khi push Git.
+
+> Nếu bỏ qua bước này, toàn bộ hệ thống vẫn chạy bình thường — chỉ riêng tính năng Chatbot sẽ báo lỗi "thiếu API key" khi gọi tới.
+
+### Bước 4: Khởi động ứng dụng
 
 Mở Terminal tại thư mục `Backend/TraSayKho.API`, chạy lần lượt:
 
@@ -45,7 +60,7 @@ dotnet run
 
 > 🌟 **Điểm cộng đặc biệt:** Toàn bộ dữ liệu mẫu (danh mục, sản phẩm, tài khoản, đơn hàng demo) đã được nạp sẵn ngay từ Bước 1 thông qua script SQL. Bạn **không cần chạy thêm bước nạp dữ liệu riêng nào**.
 
-### Bước 4: Chạy lại dữ liệu mẫu (Không bắt buộc — Chỉ dùng làm dự phòng)
+### Bước 5: Chạy lại dữ liệu mẫu (Không bắt buộc — Chỉ dùng làm dự phòng)
 
 Nếu vì lý do nào đó bạn muốn đặt lại dữ liệu gốc từ đầu:
 
@@ -83,6 +98,7 @@ Sau khi khởi động thành công, mở trình duyệt và truy cập:
 | Thống kê | `GET /api/ThongKe/tongquan`, `GET /api/ThongKe/doanhthu`, `GET /api/ThongKe/sanphambanchay` | Báo cáo doanh thu theo ngày, top sản phẩm bán chạy |
 | Hình ảnh sản phẩm | `GET/POST/DELETE /api/SanPham/{sanPhamId}/HinhAnhSanPham` | Upload/xóa ảnh, gắn theo từng sản phẩm |
 | Thông báo | `GET/POST /api/ThongBao` | Gửi thông báo cho 1 khách hàng hoặc toàn bộ khách hàng |
+| Chatbot AI | `POST /api/Chatbot/chat`, `GET /api/Chatbot/lichsu/{khachHangId}` | Tư vấn sản phẩm bằng AI (Gemini), tự động lưu lịch sử hội thoại |
 
 > Xem chi tiết đầy đủ từng endpoint tại Swagger UI sau khi chạy ứng dụng.
 
@@ -94,3 +110,5 @@ Sau khi khởi động thành công, mở trình duyệt và truy cập:
 - **Lỗi `Cannot implicitly convert type 'X?' to 'X'`**: Thiếu xử lý giá trị null (thường gặp ở cột kiểu `date` hoặc computed column). Thêm `?? giá_trị_mặc_định` vào cuối dòng gán.
 - **Lỗi `Operator '??' cannot be applied to operands of type 'X' and 'X'`**: Property không phải kiểu nullable nhưng lại dùng `??`. Xóa `?? giá_trị_mặc_định` đi.
 - **Máy mỗi người có cấu hình SQL Server khác nhau** (SQLEXPRESS vs MSSQLSERVER, tên instance khác nhau): luôn tự kiểm tra và sửa lại `appsettings.json` theo máy mình, không copy nguyên giá trị của người khác.
+- **Chatbot báo lỗi "thiếu API key"**: Chưa cấu hình `user-secrets` theo Bước 3. Chạy lại `dotnet user-secrets set "GeminiApi:ApiKey" "..."` tại đúng thư mục `Backend/TraSayKho.API`.
+- **Chatbot báo lỗi mã 404 khi gọi AI**: Model Gemini đang cấu hình trong `appsettings.json` (`GeminiApi:Model`) đã bị Google ngừng hỗ trợ. Kiểm tra nội dung lỗi trả về (Google thường tự gợi ý tên model mới ngay trong thông báo lỗi) rồi cập nhật lại giá trị `Model` cho đúng.

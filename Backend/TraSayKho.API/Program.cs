@@ -20,6 +20,7 @@ builder.Services.AddScoped<IDanhGiaRepository, DanhGiaRepository>();
 builder.Services.AddScoped<IThongKeRepository, ThongKeRepository>();
 builder.Services.AddScoped<IHinhAnhSanPhamRepository, HinhAnhSanPhamRepository>();
 builder.Services.AddScoped<IThongBaoRepository, ThongBaoRepository>();
+builder.Services.AddScoped<IChatbotRepository, ChatbotRepository>();
 
 // ==== ĐĂNG KÝ SERVICE ====
 builder.Services.AddScoped<ISanPhamService, SanPhamService>();
@@ -31,11 +32,12 @@ builder.Services.AddScoped<IDanhGiaService, DanhGiaService>();
 builder.Services.AddScoped<IThongKeService, ThongKeService>();
 builder.Services.AddScoped<IHinhAnhSanPhamService, HinhAnhSanPhamService>();
 builder.Services.AddScoped<IThongBaoService, ThongBaoService>();
+builder.Services.AddScoped<IChatbotService, ChatbotService>();
 
 // Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-
+builder.Services.AddHttpClient();
 // builder.Services.AddOpenApi();
 // ==== THAY dòng AddOpenApi() bằng 2 dòng này ====
 builder.Services.AddEndpointsApiExplorer();
