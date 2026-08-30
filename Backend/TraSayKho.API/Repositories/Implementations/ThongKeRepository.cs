@@ -10,26 +10,34 @@ namespace TraSayKho.API.Repositories.Implementations
         private readonly TraSayKhoDbContext _context;
         public ThongKeRepository(TraSayKhoDbContext context) => _context = context;
 
-        public async Task<List<DonHang>> GetDonHangHoanThanhTrongKhoangAsync(DateTime tuNgay, DateTime denNgay)
+        public async Task<List<DonHang>> GetDonHangHoanThanhTrongKhoangAsync(DateTime tuNgay, DateTime denNgay, int? chiNhanhId)
         {
-            return await _context.DonHangs
+            var query = _context.DonHangs
                 .Include(dh => dh.TrangThai)
                 .Where(dh => dh.TrangThai.TenTrangThai == "HoanThanh"
                           && dh.NgayDatHang >= tuNgay
-                          && dh.NgayDatHang <= denNgay)
-                .ToListAsync();
+                          && dh.NgayDatHang <= denNgay);
+
+            if (chiNhanhId.HasValue)
+                query = query.Where(dh => dh.ChiNhanhId == chiNhanhId.Value);
+
+            return await query.ToListAsync();
         }
 
-        public async Task<List<ChiTietDonHang>> GetChiTietDonHangHoanThanhTrongKhoangAsync(DateTime tuNgay, DateTime denNgay)
+        public async Task<List<ChiTietDonHang>> GetChiTietDonHangHoanThanhTrongKhoangAsync(DateTime tuNgay, DateTime denNgay, int? chiNhanhId)
         {
-            return await _context.ChiTietDonHangs
+            var query = _context.ChiTietDonHangs
                 .Include(ct => ct.SanPham)
                 .Include(ct => ct.DonHang)
                     .ThenInclude(dh => dh.TrangThai)
                 .Where(ct => ct.DonHang.TrangThai.TenTrangThai == "HoanThanh"
                           && ct.DonHang.NgayDatHang >= tuNgay
-                          && ct.DonHang.NgayDatHang <= denNgay)
-                .ToListAsync();
+                          && ct.DonHang.NgayDatHang <= denNgay);
+
+            if (chiNhanhId.HasValue)
+                query = query.Where(ct => ct.DonHang.ChiNhanhId == chiNhanhId.Value);
+
+            return await query.ToListAsync();
         }
 
         public async Task<int> DemTongKhachHangAsync()
@@ -42,11 +50,22 @@ namespace TraSayKho.API.Repositories.Implementations
             return await _context.SanPhams.CountAsync(sp => sp.TrangThai == "DangBan");
         }
 
-        public async Task<int> DemDonHangTheoTrangThaiAsync(string[] cacTenTrangThai)
+        public async Task<int> DemDonHangTheoTrangThaiAsync(string[] cacTenTrangThai, int? chiNhanhId)
         {
-            return await _context.DonHangs
+            var query = _context.DonHangs
                 .Include(dh => dh.TrangThai)
-                .CountAsync(dh => cacTenTrangThai.Contains(dh.TrangThai.TenTrangThai));
+                .Where(dh => cacTenTrangThai.Contains(dh.TrangThai.TenTrangThai));
+
+            if (chiNhanhId.HasValue)
+                query = query.Where(dh => dh.ChiNhanhId == chiNhanhId.Value);
+
+            return await query.CountAsync();
+        }
+
+        public async Task<string?> GetTenChiNhanhAsync(int chiNhanhId)
+        {
+            var chiNhanh = await _context.ChiNhanhs.FindAsync(chiNhanhId);
+            return chiNhanh?.TenChiNhanh;
         }
     }
 }

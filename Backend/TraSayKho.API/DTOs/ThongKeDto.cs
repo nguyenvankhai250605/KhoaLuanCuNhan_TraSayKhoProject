@@ -17,6 +17,8 @@ namespace TraSayKho.API.DTOs
 
     public class TongQuanDto
     {
+        public int? ChiNhanhId { get; set; }
+        public string PhamViBaoCao { get; set; } = string.Empty;   // "Toàn hệ thống" hoặc tên chi nhánh cụ thể
         public decimal TongDoanhThu { get; set; }
         public int TongDonHangHoanThanh { get; set; }
         public int DonHangChoXuLy { get; set; }

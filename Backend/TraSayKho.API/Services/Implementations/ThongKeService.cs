@@ -9,9 +9,9 @@ namespace TraSayKho.API.Services.Implementations
         private readonly IThongKeRepository _repository;
         public ThongKeService(IThongKeRepository repository) => _repository = repository;
 
-        public async Task<List<DoanhThuTheoNgayDto>> GetDoanhThuTheoNgayAsync(DateTime tuNgay, DateTime denNgay)
+        public async Task<List<DoanhThuTheoNgayDto>> GetDoanhThuTheoNgayAsync(DateTime tuNgay, DateTime denNgay, int? chiNhanhId)
         {
-            var donHangs = await _repository.GetDonHangHoanThanhTrongKhoangAsync(tuNgay, denNgay);
+            var donHangs = await _repository.GetDonHangHoanThanhTrongKhoangAsync(tuNgay, denNgay, chiNhanhId);
 
             return donHangs
                 .GroupBy(dh => DateOnly.FromDateTime(dh.NgayDatHang))
@@ -25,9 +25,9 @@ namespace TraSayKho.API.Services.Implementations
                 .ToList();
         }
 
-        public async Task<List<SanPhamBanChayDto>> GetTopSanPhamBanChayAsync(DateTime tuNgay, DateTime denNgay, int top)
+        public async Task<List<SanPhamBanChayDto>> GetTopSanPhamBanChayAsync(DateTime tuNgay, DateTime denNgay, int top, int? chiNhanhId)
         {
-            var chiTiets = await _repository.GetChiTietDonHangHoanThanhTrongKhoangAsync(tuNgay, denNgay);
+            var chiTiets = await _repository.GetChiTietDonHangHoanThanhTrongKhoangAsync(tuNgay, denNgay, chiNhanhId);
 
             return chiTiets
                 .GroupBy(ct => new { ct.SanPhamId, ct.SanPham.TenSanPham })
@@ -43,25 +43,43 @@ namespace TraSayKho.API.Services.Implementations
                 .ToList();
         }
 
-        public async Task<TongQuanDto> GetTongQuanAsync()
+        public async Task<(bool Success, string? ErrorMessage, TongQuanDto? Result)> GetTongQuanAsync(int? chiNhanhId)
         {
-            // Lấy toàn bộ lịch sử (không giới hạn ngày) cho phần tổng quan
+            string phamViBaoCao = "Toàn hệ thống";
+
+            if (chiNhanhId.HasValue)
+            {
+                var tenChiNhanh = await _repository.GetTenChiNhanhAsync(chiNhanhId.Value);
+                if (tenChiNhanh == null)
+                    return (false, "Chi nhánh không tồn tại.", null);
+
+                phamViBaoCao = tenChiNhanh;
+            }
+
             var tuNgayXaXua = new DateTime(2000, 1, 1);
             var denNgayHienTai = DateTime.Now;
 
-            var donHangHoanThanh = await _repository.GetDonHangHoanThanhTrongKhoangAsync(tuNgayXaXua, denNgayHienTai);
+            var donHangHoanThanh = await _repository.GetDonHangHoanThanhTrongKhoangAsync(tuNgayXaXua, denNgayHienTai, chiNhanhId);
+            var donHangChoXuLy = await _repository.DemDonHangTheoTrangThaiAsync(
+                new[] { "ChoXacNhan", "DangXuLy", "DangGiao" }, chiNhanhId);
+
+            // Số khách hàng và số sản phẩm đang bán là số liệu toàn hệ thống (không tách theo chi nhánh,
+            // vì đây là danh mục chung, không phải dữ liệu tồn kho riêng từng chi nhánh)
             var tongKhachHang = await _repository.DemTongKhachHangAsync();
             var tongSanPhamDangBan = await _repository.DemTongSanPhamDangBanAsync();
-            var donHangChoXuLy = await _repository.DemDonHangTheoTrangThaiAsync(new[] { "ChoXacNhan", "DangXuLy", "DangGiao" });
 
-            return new TongQuanDto
+            var result = new TongQuanDto
             {
+                ChiNhanhId = chiNhanhId,
+                PhamViBaoCao = phamViBaoCao,
                 TongDoanhThu = donHangHoanThanh.Sum(dh => dh.TongTien),
                 TongDonHangHoanThanh = donHangHoanThanh.Count,
                 DonHangChoXuLy = donHangChoXuLy,
                 TongKhachHang = tongKhachHang,
                 TongSanPhamDangBan = tongSanPhamDangBan
             };
+
+            return (true, null, result);
         }
     }
 }
