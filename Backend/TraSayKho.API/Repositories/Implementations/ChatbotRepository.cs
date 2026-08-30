@@ -15,19 +15,17 @@ namespace TraSayKho.API.Repositories.Implementations
             return await _context.KhachHangs.AnyAsync(kh => kh.KhachHangId == khachHangId);
         }
 
-        public async Task<CuocHoiThoai> GetOrCreateCuocHoiThoaiAsync(int khachHangId)
+        public async Task<CuocHoiThoai?> GetCuocHoiThoaiDangMoAsync(int khachHangId)
         {
-            // Tìm cuộc hội thoại đang mở gần nhất của khách hàng này
-            var cuocHoiThoai = await _context.CuocHoiThoais
+            return await _context.CuocHoiThoais
                 .Where(cht => cht.KhachHangId == khachHangId && cht.TrangThai == "DangMo")
                 .OrderByDescending(cht => cht.NgayBatDau)
                 .FirstOrDefaultAsync();
+        }
 
-            if (cuocHoiThoai != null)
-                return cuocHoiThoai;
-
-            // Chưa có thì tạo mới
-            cuocHoiThoai = new CuocHoiThoai
+        public async Task<CuocHoiThoai> TaoCuocHoiThoaiMoiAsync(int khachHangId)
+        {
+            var cuocHoiThoai = new CuocHoiThoai
             {
                 KhachHangId = khachHangId,
                 NgayBatDau = DateTime.Now,
@@ -37,6 +35,29 @@ namespace TraSayKho.API.Repositories.Implementations
             _context.CuocHoiThoais.Add(cuocHoiThoai);
             await _context.SaveChangesAsync();
             return cuocHoiThoai;
+        }
+
+        public async Task<TinNhan?> GetTinNhanGanNhatAsync(int cuocHoiThoaiId)
+        {
+            return await _context.TinNhans
+                .Where(tn => tn.CuocHoiThoaiId == cuocHoiThoaiId)
+                .OrderByDescending(tn => tn.ThoiGianGui)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> DongPhienAsync(int cuocHoiThoaiId)
+        {
+            var cuocHoiThoai = await _context.CuocHoiThoais.FindAsync(cuocHoiThoaiId);
+            if (cuocHoiThoai == null) return false;
+
+            cuocHoiThoai.TrangThai = "DaDong";
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<CuocHoiThoai?> GetCuocHoiThoaiByIdAsync(int cuocHoiThoaiId)
+        {
+            return await _context.CuocHoiThoais.FindAsync(cuocHoiThoaiId);
         }
 
         public async Task<TinNhan> AddTinNhanAsync(int cuocHoiThoaiId, string nguoiGui, string noiDung)
@@ -62,7 +83,7 @@ namespace TraSayKho.API.Repositories.Implementations
                 .Take(soLuong)
                 .ToListAsync();
 
-            tinNhans.Reverse(); // đảo lại đúng thứ tự thời gian (cũ → mới)
+            tinNhans.Reverse();
             return tinNhans;
         }
 

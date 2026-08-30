@@ -28,5 +28,14 @@ namespace TraSayKho.API.Controllers
             if (!success) return BadRequest(new { message = errorMessage });
             return Ok(result);
         }
+
+        // PUT: api/Chatbot/dongphien/5
+        [HttpPut("dongphien/{cuocHoiThoaiId}")]
+        public async Task<IActionResult> DongPhien(int cuocHoiThoaiId)
+        {
+            var (success, errorMessage) = await _service.DongPhienAsync(cuocHoiThoaiId);
+            if (!success) return BadRequest(new { message = errorMessage });
+            return Ok(new { message = "Đã kết thúc phiên trò chuyện." });
+        }
     }
 }

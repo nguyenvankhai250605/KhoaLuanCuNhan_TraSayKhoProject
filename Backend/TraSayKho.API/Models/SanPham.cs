@@ -37,6 +37,8 @@ public partial class SanPham
 
     public virtual ICollection<HinhAnhSanPham> HinhAnhSanPhams { get; set; } = new List<HinhAnhSanPham>();
 
+    public virtual ICollection<LoHang> LoHangs { get; set; } = new List<LoHang>();
+
     public virtual ICollection<CongDung> CongDungs { get; set; } = new List<CongDung>();
 
     public virtual ICollection<ThanhPhan> ThanhPhans { get; set; } = new List<ThanhPhan>();

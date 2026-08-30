@@ -14,6 +14,7 @@ namespace TraSayKho.API.Services.Implementations
         private readonly IConfiguration _configuration;
 
         private const int SoLuongTinNhanNgheGanNhat = 10;
+        private const int SoPhutTuDongDongPhien = 60;
 
         public ChatbotService(
             IChatbotRepository repository,
@@ -37,8 +38,8 @@ namespace TraSayKho.API.Services.Implementations
             if (string.IsNullOrWhiteSpace(apiKey))
                 return (false, "Chatbot hiện chưa được cấu hình (thiếu API key). Vui lòng liên hệ quản trị viên.", null);
 
-            // 1. Lấy hoặc tạo cuộc hội thoại
-            var cuocHoiThoai = await _repository.GetOrCreateCuocHoiThoaiAsync(dto.KhachHangId);
+            // 1. Lấy hoặc tạo cuộc hội thoại (có kiểm tra timeout 60 phút)
+            var cuocHoiThoai = await LayHoacTaoCuocHoiThoaiAsync(dto.KhachHangId);
 
             // 2. Lưu tin nhắn của khách hàng trước
             await _repository.AddTinNhanAsync(cuocHoiThoai.CuocHoiThoaiId, "KhachHang", dto.NoiDung);
@@ -71,7 +72,10 @@ namespace TraSayKho.API.Services.Implementations
             if (!await _repository.KhachHangExistsAsync(khachHangId))
                 return (false, "Khách hàng không tồn tại.", null);
 
-            var cuocHoiThoai = await _repository.GetOrCreateCuocHoiThoaiAsync(khachHangId);
+            var cuocHoiThoai = await _repository.GetCuocHoiThoaiDangMoAsync(khachHangId);
+            if (cuocHoiThoai == null)
+                return (true, null, new List<TinNhanDto>()); // chưa từng chat, trả về danh sách rỗng
+
             var lichSu = await _repository.GetToanBoLichSuAsync(cuocHoiThoai.CuocHoiThoaiId);
 
             var result = lichSu.Select(tn => new TinNhanDto
@@ -83,6 +87,47 @@ namespace TraSayKho.API.Services.Implementations
             }).ToList();
 
             return (true, null, result);
+        }
+
+        public async Task<(bool Success, string? ErrorMessage)> DongPhienAsync(int cuocHoiThoaiId)
+        {
+            var cuocHoiThoai = await _repository.GetCuocHoiThoaiByIdAsync(cuocHoiThoaiId);
+            if (cuocHoiThoai == null)
+                return (false, "Không tìm thấy cuộc hội thoại.");
+
+            if (cuocHoiThoai.TrangThai == "DaDong")
+                return (false, "Cuộc hội thoại này đã được kết thúc trước đó.");
+
+            var success = await _repository.DongPhienAsync(cuocHoiThoaiId);
+            return success ? (true, null) : (false, "Không thể kết thúc phiên trò chuyện.");
+        }
+
+        // ==== Logic quyết định: dùng lại cuộc hội thoại cũ, hay tạo mới ====
+        private async Task<CuocHoiThoai> LayHoacTaoCuocHoiThoaiAsync(int khachHangId)
+        {
+            var cuocHoiThoaiDangMo = await _repository.GetCuocHoiThoaiDangMoAsync(khachHangId);
+
+            // Trường hợp 1: chưa từng có cuộc hội thoại nào đang mở → tạo mới
+            if (cuocHoiThoaiDangMo == null)
+                return await _repository.TaoCuocHoiThoaiMoiAsync(khachHangId);
+
+            // Trường hợp 2: có cuộc hội thoại đang mở → kiểm tra xem đã quá 60 phút không hoạt động chưa
+            var tinNhanGanNhat = await _repository.GetTinNhanGanNhatAsync(cuocHoiThoaiDangMo.CuocHoiThoaiId);
+
+            if (tinNhanGanNhat != null)
+            {
+                var soPhutDaTroi = (DateTime.Now - tinNhanGanNhat.ThoiGianGui).TotalMinutes;
+
+                if (soPhutDaTroi > SoPhutTuDongDongPhien)
+                {
+                    // Quá 60 phút im lặng → tự động đóng phiên cũ, tạo phiên mới
+                    await _repository.DongPhienAsync(cuocHoiThoaiDangMo.CuocHoiThoaiId);
+                    return await _repository.TaoCuocHoiThoaiMoiAsync(khachHangId);
+                }
+            }
+
+            // Trường hợp 3: vẫn còn trong 60 phút → tiếp tục dùng cuộc hội thoại cũ
+            return cuocHoiThoaiDangMo;
         }
 
         // ==== Xây dựng "kho tri thức" sản phẩm cho AI ====
@@ -116,10 +161,9 @@ namespace TraSayKho.API.Services.Implementations
         private async Task<(bool Success, string? ErrorMessage, string? CauTraLoi)> GoiGeminiApiAsync(
             string apiKey, string systemPrompt, List<TinNhan> lichSu)
         {
-            var model = _configuration["GeminiApi:Model"] ?? "gemini-2.0-flash";
+            var model = _configuration["GeminiApi:Model"] ?? "gemini-3.6-flash";
             var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
 
-            // Chuyển lịch sử hội thoại sang định dạng Gemini yêu cầu
             var contents = lichSu.Select(tn => new
             {
                 role = tn.NguoiGui == "KhachHang" ? "user" : "model",
@@ -151,9 +195,6 @@ namespace TraSayKho.API.Services.Implementations
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"[DEBUG] URL gọi: {url}");
-                    Console.WriteLine($"[DEBUG] Gemini trả về: {responseBody}");
-
                     if ((int)response.StatusCode == 429)
                         return (false, "Chatbot đang tạm thời quá tải (vượt hạn mức miễn phí). Vui lòng thử lại sau ít phút.", null);
 

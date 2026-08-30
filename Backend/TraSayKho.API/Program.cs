@@ -21,6 +21,8 @@ builder.Services.AddScoped<IThongKeRepository, ThongKeRepository>();
 builder.Services.AddScoped<IHinhAnhSanPhamRepository, HinhAnhSanPhamRepository>();
 builder.Services.AddScoped<IThongBaoRepository, ThongBaoRepository>();
 builder.Services.AddScoped<IChatbotRepository, ChatbotRepository>();
+builder.Services.AddScoped<IChiNhanhRepository, ChiNhanhRepository>();
+builder.Services.AddScoped<ILoHangRepository, LoHangRepository>();
 
 // ==== ĐĂNG KÝ SERVICE ====
 builder.Services.AddScoped<ISanPhamService, SanPhamService>();
@@ -33,6 +35,8 @@ builder.Services.AddScoped<IThongKeService, ThongKeService>();
 builder.Services.AddScoped<IHinhAnhSanPhamService, HinhAnhSanPhamService>();
 builder.Services.AddScoped<IThongBaoService, ThongBaoService>();
 builder.Services.AddScoped<IChatbotService, ChatbotService>();
+builder.Services.AddScoped<IChiNhanhService, ChiNhanhService>();
+builder.Services.AddScoped<ILoHangService, LoHangService>();
 
 // Add services to the container.
 builder.Services.AddControllers();

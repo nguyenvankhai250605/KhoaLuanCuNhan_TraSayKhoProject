@@ -9,6 +9,8 @@ public partial class DonHang
 
     public int KhachHangId { get; set; }
 
+    public int? ChiNhanhId { get; set; }
+
     public int TrangThaiId { get; set; }
 
     public int? KhuyenMaiId { get; set; }
@@ -28,6 +30,8 @@ public partial class DonHang
     public string? GhiChu { get; set; }
 
     public DateTime NgayDatHang { get; set; }
+
+    public virtual ChiNhanh? ChiNhanh { get; set; }
 
     public virtual ICollection<ChiTietDonHang> ChiTietDonHangs { get; set; } = new List<ChiTietDonHang>();
 
