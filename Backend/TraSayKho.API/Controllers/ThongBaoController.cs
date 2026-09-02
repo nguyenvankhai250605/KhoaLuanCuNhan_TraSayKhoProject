@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using TraSayKho.API.DTOs;
 using TraSayKho.API.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TraSayKho.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,NhanVien")]
     public class ThongBaoController : ControllerBase
     {
         private readonly IThongBaoService _service;

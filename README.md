@@ -1,6 +1,6 @@
 # 🍵 Ứng dụng bán trà sấy khô tích hợp Chatbot AI (Mô hình đa chi nhánh)
 
-Đây là dự án Web quản trị bán trà sấy khô được xây dựng bằng **ASP.NET Core Web API**, **Entity Framework Core**, và **SQL Server**, theo kiến trúc **N-Layer** (Controller → Service → Repository). Hệ thống hỗ trợ quản lý **nhiều chi nhánh**, theo dõi tồn kho theo **lô hàng** (hạn sử dụng, FEFO), và tích hợp **Chatbot AI** tư vấn sản phẩm.
+Đây là dự án Web quản trị bán trà sấy khô được xây dựng bằng **ASP.NET Core Web API**, **Entity Framework Core**, và **SQL Server**, theo kiến trúc **N-Layer** (Controller → Service → Repository). Hệ thống hỗ trợ quản lý **nhiều chi nhánh**, theo dõi tồn kho theo **lô hàng** (hạn sử dụng, FEFO), tích hợp **Chatbot AI** tư vấn sản phẩm, và bảo mật bằng **JWT Authentication** (đăng nhập, phân quyền theo vai trò).
 
 ## 🛠️ Yêu cầu hệ thống
 
@@ -22,7 +22,7 @@
 
 Mở file `Backend/TraSayKho.API/appsettings.json` và sửa lại thông tin cấu hình SQL Server cho phù hợp với máy của bạn.
 
-> ⚠️ **Lưu ý:** Mỗi máy có tên SQL Server khác nhau (ví dụ `KHAINGUYEN\SQLEXPRESS`, `TENMAY-PC\SQLEXPRESS`...). Bạn **CẦN PHẢI** sửa lại phần này — tìm tên server của mình bằng cách mở SSMS, xem ở ô "Server name" lúc đăng nhập.
+> ⚠️ **Lưu ý:** Mỗi máy có tên SQL Server khác nhau. Tìm tên server bằng cách mở SSMS, xem ở ô "Server name" lúc đăng nhập.
 
 ```json
 "ConnectionStrings": {
@@ -30,19 +30,39 @@ Mở file `Backend/TraSayKho.API/appsettings.json` và sửa lại thông tin c�
 }
 ```
 
-> Nếu tên server có dấu `\`, trong file JSON phải gõ **2 dấu `\\`** liền nhau (do quy tắc escape của JSON).
+> Nếu tên server có dấu `\`, trong file JSON phải gõ **2 dấu `\\`** liền nhau.
 
-### Bước 3: Cấu hình API Key cho Chatbot AI
+### Bước 3: Cấu hình các khóa bí mật (Secrets)
+
+Mở Terminal tại `Backend/TraSayKho.API`, chạy:
 
 ```bash
-cd Backend/TraSayKho.API
 dotnet user-secrets init
-dotnet user-secrets set "GeminiApi:ApiKey" "API_KEY_CUA_BAN"
+dotnet user-secrets set "GeminiApi:ApiKey" "API_KEY_GEMINI_CUA_BAN"
+dotnet user-secrets set "JwtSettings:SecretKey" "day-la-chuoi-bi-mat-rat-dai-va-kho-doan-cho-du-an-tra-say-kho-2026"
 ```
 
-> Lấy API key miễn phí tại: https://aistudio.google.com/apikey (đăng nhập Google, không cần thẻ thanh toán). Có thể dùng chung 1 key cho cả nhóm — liên hệ Khải để lấy key nếu chưa có.
+> - **Gemini API key**: lấy miễn phí tại https://aistudio.google.com/apikey. Có thể dùng chung 1 key cho cả nhóm — liên hệ Khải nếu chưa có.
+> - **JWT SecretKey**: chuỗi bí mật dùng để ký/xác minh token đăng nhập, nên dài (≥32 ký tự), có thể tự nghĩ ra hoặc dùng đúng ví dụ trên.
+> - ⚠️ **Không đặt các giá trị này trực tiếp trong `appsettings.json`** — lệnh `user-secrets` lưu ở nơi an toàn ngoài project, tránh lộ khi push Git.
 
-> ⚠️ **Không đặt API key trực tiếp trong `appsettings.json`** — lệnh `user-secrets` lưu key ở nơi an toàn ngoài project, tránh lộ khi push Git. Nếu bỏ qua bước này, hệ thống vẫn chạy bình thường — chỉ riêng Chatbot báo lỗi "thiếu API key".
+Mở `appsettings.json`, thêm phần cấu hình không nhạy cảm:
+
+```json
+{
+  "ConnectionStrings": {
+    "TraSayKhoDB": "..."
+  },
+  "GeminiApi": {
+    "Model": "gemini-3.6-flash"
+  },
+  "JwtSettings": {
+    "Issuer": "TraSayKhoAPI",
+    "Audience": "TraSayKhoUsers",
+    "ExpiryMinutes": 1440
+  }
+}
+```
 
 ### Bước 4: Khởi động ứng dụng
 
@@ -51,15 +71,25 @@ dotnet restore
 dotnet run
 ```
 
-Mở trình duyệt vào `http://localhost:{port}/swagger` (port hiển thị trong Terminal, dòng `Now listening on...`).
+Mở trình duyệt vào `http://localhost:{port}/swagger`.
 
 ### Bước 5: Chạy lại dữ liệu mẫu (Không bắt buộc — Chỉ dùng làm dự phòng)
 
-Nếu muốn đặt lại dữ liệu gốc từ đầu: xóa database `TraSayKhoDB` cũ trong SSMS (chuột phải → Delete), rồi chạy lại toàn bộ file `Database/Database_TraSayKho.sql` như Bước 1.
+Nếu muốn đặt lại dữ liệu gốc: xóa database `TraSayKhoDB` cũ trong SSMS, chạy lại file `.sql` như Bước 1.
 
-## 🌐 Trải nghiệm ứng dụng
+## 🔐 Đăng nhập & Sử dụng API có bảo mật
 
-- **Swagger API:** `http://localhost:{port}/swagger`
+Từ đợt cập nhật này, **hầu hết API quản trị** (Sản phẩm, Đơn hàng, Chi nhánh, Lô hàng...) **yêu cầu đăng nhập** mới gọi được. Riêng `Auth` (đăng ký/đăng nhập) và `Chatbot` vẫn mở tự do.
+
+### Cách lấy Token và test trên Swagger
+
+1. Gọi `POST /api/Auth/dangnhap` với tài khoản hợp lệ → copy giá trị `token` trong response (chuỗi dài bắt đầu `eyJ...`).
+2. Bấm nút **Authorize 🔒** ở đầu trang Swagger.
+3. Trong ô Value, **chỉ dán đúng chuỗi token** — **KHÔNG gõ thêm chữ "Bearer"** (Swagger tự thêm sẵn rồi, gõ thêm sẽ bị lặp "Bearer Bearer" gây lỗi 401).
+4. Bấm **Authorize** → thấy chữ "Authorized" → bấm **Close**.
+5. Từ giờ mọi request đều tự động kèm token.
+
+> ⚠️ **Tài khoản mẫu cũ (`admin`, `khachhang01`...) KHÔNG đăng nhập được** — mật khẩu của chúng là chuỗi giả lập, chưa qua mã hóa BCrypt thật. Cần **tạo tài khoản mới** qua `POST /api/Auth/dangky` (khách hàng) hoặc `POST /api/Auth/taonhanvien` (admin/nhân viên) rồi đăng nhập lại bằng tài khoản đó.
 
 ### Chi nhánh mẫu
 
@@ -68,52 +98,41 @@ Nếu muốn đặt lại dữ liệu gốc từ đầu: xóa database `TraSayKh
 | Chi nhánh Quận 1 | 123 Nguyễn Huệ, Quận 1, TP.HCM | Chi nhánh chính (trụ sở) |
 | Chi nhánh Thủ Đức | 45 Võ Văn Ngân, Thủ Đức, TP.HCM | Chi nhánh phụ |
 
-### Tài khoản đăng nhập mẫu
-
-| Vai trò | Tên đăng nhập | Email | Ghi chú |
-|---|---|---|---|
-| Admin tổng | `admin` | admin@trasaykho.vn | Không gắn chi nhánh, xem toàn hệ thống |
-| Quản lý chi nhánh | `nhanvien01` | nhanvien01@trasaykho.vn | Thuộc Chi nhánh Quận 1 |
-| Quản lý chi nhánh | `nhanvien02` | nhanvien02@trasaykho.vn | Thuộc Chi nhánh Thủ Đức |
-| Khách hàng | `khachhang01` | khachhang01@gmail.com | Có sẵn 1 đơn hàng + 1 đánh giá demo |
-| Khách hàng | `khachhang02` | khachhang02@gmail.com | Chưa có đơn hàng |
-
-> ⚠️ Mật khẩu trong dữ liệu mẫu hiện là chuỗi giả lập, chưa dùng để đăng nhập thật được — sẽ cập nhật khi hoàn thiện chức năng Authentication.
-
 ## 📋 Danh sách API chính
 
 | Module | Endpoint | Ghi chú |
 |---|---|---|
-| Sản phẩm | `GET/POST/PUT/DELETE /api/SanPham` | Đầy đủ CRUD, xóa mềm. `SoLuongTon`/`HanSuDung` tự đồng bộ từ Lô hàng |
-| Danh mục | `GET/POST/PUT/DELETE /api/DanhMuc` | Đầy đủ CRUD, xóa mềm |
-| Khuyến mãi | `GET/POST/PUT/DELETE /api/KhuyenMai` | Đầy đủ CRUD, xóa mềm |
-| Đơn hàng | `GET /api/DonHang`, `PUT /api/DonHang/{id}/trangthai` | Chỉ cập nhật trạng thái theo đúng thứ tự, gắn với Chi nhánh xử lý |
-| Khách hàng | `GET/PUT /api/KhachHang`, `PUT /api/KhachHang/{id}/trangthai` | Không tạo mới (khách tự đăng ký qua app), có khóa/mở khóa tài khoản |
-| Đánh giá | `GET/DELETE /api/DanhGia` | Chỉ đọc và xóa (kiểm duyệt) |
-| **Chi nhánh** | `GET/POST/PUT/DELETE /api/ChiNhanh` | Quản lý danh sách chi nhánh, xóa mềm |
-| **Lô hàng** | `GET/POST /api/LoHang`, `GET /api/LoHang/sanpham/{id}`, `GET /api/LoHang/saphethan?soNgay=30` | Nhập lô mới (tự đồng bộ tồn kho sản phẩm), tra cứu theo sản phẩm, cảnh báo cận hạn |
-| **Xả kho (theo lô)** | `PUT /api/LoHang/{id}/xakho`, `PUT /api/LoHang/{id}/huyxakho` | Gán/hủy mức giảm giá riêng cho từng lô cận hạn |
-| **Phiếu điều chuyển kho** | `GET/POST /api/PhieuDieuChuyen`, `PUT /api/PhieuDieuChuyen/{id}/xacnhan`, `PUT /api/PhieuDieuChuyen/{id}/huy` | Chuyển hàng giữa 2 chi nhánh, giữ nguyên lô/hạn sử dụng khi chuyển |
-| Thống kê | `GET /api/ThongKe/tongquan`, `.../doanhthu`, `.../sanphambanchay` | Thêm tham số `?chiNhanhId=` tùy chọn — bỏ trống để xem toàn hệ thống, truyền vào để xem riêng 1 chi nhánh |
-| Hình ảnh sản phẩm | `GET/POST/DELETE /api/SanPham/{sanPhamId}/HinhAnhSanPham` | Upload/xóa ảnh, gắn theo từng sản phẩm |
-| Thông báo | `GET/POST /api/ThongBao` | Gửi thông báo cho 1 khách hàng hoặc toàn bộ khách hàng |
-| Chatbot AI | `POST /api/Chatbot/chat`, `GET /api/Chatbot/lichsu/{khachHangId}`, `PUT /api/Chatbot/dongphien/{cuocHoiThoaiId}` | Tư vấn sản phẩm bằng AI (Gemini), tự lưu lịch sử, tự đóng phiên sau 60 phút không hoạt động |
+| **Xác thực** | `POST /api/Auth/dangky`, `.../taonhanvien`, `.../dangnhap` | Đăng ký khách hàng, tạo tài khoản nhân viên, đăng nhập nhận JWT token. **Không yêu cầu đăng nhập trước.** |
+| Sản phẩm | `GET/POST/PUT/DELETE /api/SanPham` 🔒 | Đầy đủ CRUD, xóa mềm. `SoLuongTon`/`HanSuDung` tự đồng bộ từ Lô hàng |
+| Danh mục | `GET/POST/PUT/DELETE /api/DanhMuc` 🔒 | Đầy đủ CRUD, xóa mềm |
+| Khuyến mãi | `GET/POST/PUT/DELETE /api/KhuyenMai` 🔒 | Đầy đủ CRUD, xóa mềm |
+| Đơn hàng | `GET /api/DonHang`, `PUT .../trangthai` 🔒 | Chỉ cập nhật trạng thái theo đúng thứ tự |
+| Khách hàng | `GET/PUT /api/KhachHang`, `PUT .../trangthai` 🔒 | Không tạo mới (dùng `Auth/dangky`) |
+| Đánh giá | `GET/DELETE /api/DanhGia` 🔒 | Chỉ đọc và xóa (kiểm duyệt) |
+| Chi nhánh | `GET/POST/PUT/DELETE /api/ChiNhanh` 🔒 | Quản lý danh sách chi nhánh |
+| Lô hàng | `GET/POST /api/LoHang`, `.../sanpham/{id}`, `.../saphethan` 🔒 | Nhập lô, tra cứu, cảnh báo cận hạn |
+| Xả kho | `PUT /api/LoHang/{id}/xakho`, `.../huyxakho` 🔒 | Gán/hủy giảm giá riêng theo lô |
+| Phiếu điều chuyển kho | `GET/POST /api/PhieuDieuChuyen`, `.../xacnhan`, `.../huy` 🔒 | Chuyển hàng giữa 2 chi nhánh |
+| Thống kê | `GET /api/ThongKe/...` (có `?chiNhanhId=`) 🔒 | Bỏ trống = toàn hệ thống |
+| Hình ảnh sản phẩm | `GET/POST/DELETE /api/SanPham/{id}/HinhAnhSanPham` 🔒 | Upload/xóa ảnh |
+| Thông báo | `GET/POST /api/ThongBao` 🔒 | Gửi cho 1 hoặc toàn bộ khách hàng |
+| Chatbot AI | `POST /api/Chatbot/chat`, `.../lichsu/{id}`, `PUT .../dongphien/{id}` | Tư vấn bằng Gemini, tự đóng phiên sau 60 phút. **Không yêu cầu đăng nhập** (tạm thời, chờ luồng Mobile hoàn chỉnh) |
 
-> Xem chi tiết đầy đủ từng endpoint (tham số, mẫu request/response) tại Swagger UI sau khi chạy ứng dụng.
+> 🔒 = yêu cầu đăng nhập (Bearer token). Xem chi tiết đầy đủ tại Swagger UI.
 
 ## 📌 Khắc phục sự cố thường gặp
 
-- **Lỗi `Could not find any project in ...`**: Đang đứng sai thư mục khi chạy lệnh `dotnet`. Chạy `cd Backend/TraSayKho.API` trước khi chạy các lệnh `dotnet`.
-- **Lỗi `The server was not found or was not accessible`**: Sai tên server trong connection string, hoặc dùng nhầm `/` thay vì `\`. Kiểm tra lại bằng SSMS, dùng đúng `\\` trong file JSON.
-- **Lỗi `does not contain a definition for 'XxxYyy'`**: Sai tên `DbSet` khi gọi `_context.XxxYyy`. Mở `Data/TraSayKhoDbContext.cs`, đối chiếu đúng tên `DbSet` tương ứng.
-- **Lỗi `Cannot implicitly convert type 'X?' to 'X'`**: Thiếu xử lý giá trị null (thường gặp ở cột `date` hoặc computed column). Thêm `?? giá_trị_mặc_định` vào cuối dòng gán.
-- **Lỗi `Operator '??' cannot be applied to operands of type 'X' and 'X'`**: Property không phải kiểu nullable nhưng lại dùng `??`. Xóa `?? giá_trị_mặc_định` đi.
-- **Chatbot báo lỗi "thiếu API key"**: Chưa cấu hình `user-secrets` theo Bước 3.
-- **Chatbot báo lỗi mã 404 khi gọi AI**: Model Gemini đang cấu hình (`GeminiApi:Model` trong `appsettings.json`) đã bị Google ngừng hỗ trợ. Đọc nội dung lỗi trả về (Google thường tự gợi ý tên model mới ngay trong thông báo lỗi) rồi cập nhật lại giá trị `Model`.
-- **Sau khi pull code có thay đổi database (thêm bảng/cột mới)**: cần chạy lại đúng script `.sql` mới nhất (Bước 1), và scaffold lại Model:
+- **Lỗi `Could not find any project in ...`**: Sai thư mục. Chạy `cd Backend/TraSayKho.API` trước.
+- **Lỗi `The server was not found or was not accessible`**: Sai tên server hoặc dùng nhầm `/` thay `\`.
+- **Lỗi `does not contain a definition for 'XxxYyy'`**: Sai tên `DbSet`. Đối chiếu `Data/TraSayKhoDbContext.cs`.
+- **Lỗi `Cannot implicitly convert type 'X?' to 'X'`**: Thiếu `?? giá_trị_mặc_định`.
+- **Lỗi `Operator '??' cannot be applied...`**: Thừa `?? giá_trị_mặc_định`, xóa đi.
+- **Chatbot lỗi "thiếu API key"**: Chưa cấu hình `user-secrets` (Bước 3).
+- **Chatbot lỗi mã 404**: Model Gemini bị ngừng hỗ trợ, đọc thông báo lỗi để lấy tên model mới, cập nhật `GeminiApi:Model`.
+- **Sau khi pull code có thay đổi database**: chạy lại `.sql` mới nhất, rồi scaffold lại Model:
 ```bash
-  cd Backend/TraSayKho.API
   dotnet ef dbcontext scaffold "Server=TEN_SERVER;Database=TraSayKhoDB;Trusted_Connection=True;TrustServerCertificate=True;" Microsoft.EntityFrameworkCore.SqlServer -o Models --context TraSayKhoDbContext --context-dir Data --no-onconfiguring --force
 ```
-  Tham số `--force` cho phép ghi đè Model cũ — an toàn vì các file trong `Models/`, `Data/` không được sửa tay trực tiếp.
-- **Máy mỗi người có cấu hình SQL Server khác nhau**: luôn tự kiểm tra và sửa lại `appsettings.json` theo máy mình, không copy nguyên giá trị của người khác.
+- **Gọi API bị `401 Unauthorized`**: Chưa đăng nhập/chưa Authorize trên Swagger, hoặc token đã hết hạn (24h) — đăng nhập lại lấy token mới.
+- **Vẫn `401` dù đã nhập token**: Kiểm tra ô Value trong Swagger Authorize — chỉ dán đúng token, không tự gõ thêm chữ "Bearer" phía trước (Swagger tự thêm sẵn).
+- **Máy mỗi người có cấu hình SQL Server khác nhau**: luôn tự sửa `appsettings.json` theo máy mình.
