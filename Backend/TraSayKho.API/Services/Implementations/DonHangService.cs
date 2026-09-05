@@ -8,7 +8,6 @@ namespace TraSayKho.API.Services.Implementations
     {
         private readonly IDonHangRepository _repository;
 
-        // Định nghĩa các bước hợp lệ — không cho nhảy cóc trạng thái tùy tiện
         private static readonly Dictionary<string, string[]> QuyTacChuyenTrangThai = new()
         {
             ["ChoXacNhan"] = new[] { "DangXuLy", "DaHuy" },
@@ -27,6 +26,8 @@ namespace TraSayKho.API.Services.Implementations
             return list.Select(dh => new DonHangDto
             {
                 DonHangId = dh.DonHangId,
+                ChiNhanhId = dh.ChiNhanhId,
+                TenChiNhanh = dh.ChiNhanh?.TenChiNhanh,
                 TenKhachHang = dh.KhachHang.HoTen,
                 TrangThai = dh.TrangThai.TenTrangThai,
                 TongTien = dh.TongTien,
@@ -42,6 +43,8 @@ namespace TraSayKho.API.Services.Implementations
             return new DonHangChiTietDto
             {
                 DonHangId = dh.DonHangId,
+                ChiNhanhId = dh.ChiNhanhId,
+                TenChiNhanh = dh.ChiNhanh?.TenChiNhanh,
                 TenKhachHang = dh.KhachHang.HoTen,
                 TrangThai = dh.TrangThai.TenTrangThai,
                 DiaChiGiaoHang = dh.DiaChiGiaoHang,
@@ -59,19 +62,15 @@ namespace TraSayKho.API.Services.Implementations
 
         public async Task<(bool Success, string? ErrorMessage)> CapNhatTrangThaiAsync(int id, CapNhatTrangThaiDto dto)
         {
-            var donHangHienTai = await _repository.GetByIdAsync(id);
-            if (donHangHienTai == null)
+            var donHangChiTiet = await _repository.GetByIdWithDetailsAsync(id);
+            if (donHangChiTiet == null)
                 return (false, "Không tìm thấy đơn hàng.");
-
-            var trangThaiHienTai = await _repository.GetTrangThaiByTenAsync(
-                (await _repository.GetByIdWithDetailsAsync(id))!.TrangThai.TenTrangThai);
 
             var trangThaiMoi = await _repository.GetTrangThaiByTenAsync(dto.TenTrangThaiMoi);
             if (trangThaiMoi == null)
                 return (false, "Trạng thái không hợp lệ.");
 
-            // Kiểm tra quy tắc chuyển trạng thái hợp lệ
-            var tenTrangThaiHienTai = trangThaiHienTai!.TenTrangThai;
+            var tenTrangThaiHienTai = donHangChiTiet.TrangThai.TenTrangThai;
             if (!QuyTacChuyenTrangThai.TryGetValue(tenTrangThaiHienTai, out var cacBuocDuocPhep) ||
                 !cacBuocDuocPhep.Contains(dto.TenTrangThaiMoi))
             {

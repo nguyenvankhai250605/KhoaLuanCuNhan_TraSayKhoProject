@@ -60,7 +60,7 @@ GO
 CREATE TABLE NhanVien (
     NhanVienID INT IDENTITY(1,1) PRIMARY KEY,
     TaiKhoanID INT NOT NULL UNIQUE,
-    ChiNhanhID INT NULL,                    -- NULL = Quản trị viên tổng (xem toàn hệ thống)
+    ChiNhanhID INT NULL,
     HoTen NVARCHAR(100) NOT NULL,
     ChucVu NVARCHAR(50) NULL,
     NgayVaoLam DATE NULL,
@@ -104,9 +104,9 @@ CREATE TABLE SanPham (
     MoTaChiTiet NVARCHAR(MAX) NULL,
     XuatXu NVARCHAR(100) NULL,
     GiaBan DECIMAL(18,2) NOT NULL CHECK (GiaBan >= 0),
-    SoLuongTon INT NOT NULL DEFAULT 0 CHECK (SoLuongTon >= 0),  -- Tự động đồng bộ = tổng SoLuongConLai của các LoHang
+    SoLuongTon INT NOT NULL DEFAULT 0 CHECK (SoLuongTon >= 0),
     DonViTinh NVARCHAR(20) NULL,
-    HanSuDung DATE NULL,                     -- Tự động đồng bộ = HSD gần nhất trong các LoHang còn hàng
+    HanSuDung DATE NULL,
     TrangThai NVARCHAR(20) NOT NULL DEFAULT N'DangBan',
     NgayTao DATETIME NOT NULL DEFAULT GETDATE(),
     CONSTRAINT FK_SanPham_DanhMuc FOREIGN KEY (DanhMucID) REFERENCES DanhMuc(DanhMucID)
@@ -153,15 +153,28 @@ CREATE TABLE LoHang (
     HanSuDung DATE NOT NULL,
     SoLuongNhap INT NOT NULL CHECK (SoLuongNhap > 0),
     SoLuongConLai INT NOT NULL CHECK (SoLuongConLai >= 0),
-    MucGiamGiaHienTai DECIMAL(5,2) NULL,        -- % giảm đang áp dụng (xả kho), NULL = giá gốc
+    MucGiamGiaHienTai DECIMAL(5,2) NULL,
     NgayBatDauApDungGiam DATE NULL,
     NgayKetThucApDungGiam DATE NULL,
-    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'ConHang',  -- ConHang, HetHang, DaHetHan
+    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'ConHang',
     NgayTao DATETIME NOT NULL DEFAULT GETDATE(),
     CONSTRAINT FK_LoHang_SanPham FOREIGN KEY (SanPhamID) REFERENCES SanPham(SanPhamID),
     CONSTRAINT FK_LoHang_ChiNhanh FOREIGN KEY (ChiNhanhID) REFERENCES ChiNhanh(ChiNhanhID),
     CONSTRAINT UQ_LoHang_SoLo UNIQUE (SanPhamID, ChiNhanhID, SoLo),
     CONSTRAINT CHK_LoHang_SoLuong CHECK (SoLuongConLai <= SoLuongNhap)
+);
+GO
+
+-- =============================================
+-- 4.1 NHÓM: BẬC GIẢM GIÁ XẢ KHO (đa bậc theo số ngày còn lại tới HSD)
+-- =============================================
+
+CREATE TABLE BacGiamGiaXaKho (
+    BacGiamGiaID INT IDENTITY(1,1) PRIMARY KEY,
+    TenBac NVARCHAR(50) NOT NULL,
+    SoNgayConLaiToiDa INT NOT NULL,          -- áp dụng khi số ngày còn lại <= giá trị này
+    MucGiamGiaPhanTram DECIMAL(5,2) NOT NULL CHECK (MucGiamGiaPhanTram > 0 AND MucGiamGiaPhanTram <= 100),
+    TrangThai BIT NOT NULL DEFAULT 1
 );
 GO
 
@@ -198,7 +211,7 @@ GO
 CREATE TABLE DonHang (
     DonHangID INT IDENTITY(1,1) PRIMARY KEY,
     KhachHangID INT NOT NULL,
-    ChiNhanhID INT NULL,                     -- Chi nhánh xử lý đơn hàng
+    ChiNhanhID INT NULL,
     TrangThaiID INT NOT NULL,
     KhuyenMaiID INT NULL,
     DiaChiGiaoHang NVARCHAR(255) NOT NULL,
@@ -220,7 +233,7 @@ CREATE TABLE ChiTietDonHang (
     ChiTietDonHangID INT IDENTITY(1,1) PRIMARY KEY,
     DonHangID INT NOT NULL,
     SanPhamID INT NOT NULL,
-    LoHangID INT NULL,                       -- Lô cụ thể đã xuất kho cho dòng đơn hàng này (phục vụ truy vết đổi trả)
+    LoHangID INT NULL,
     SoLuong INT NOT NULL CHECK (SoLuong > 0),
     DonGia DECIMAL(18,2) NOT NULL,
     ThanhTien AS (SoLuong * DonGia) PERSISTED,
@@ -252,7 +265,7 @@ CREATE TABLE PhieuDieuChuyenKho (
     ChiNhanhNhanID INT NOT NULL,
     NhanVienTaoID INT NOT NULL,
     NhanVienXacNhanID INT NULL,
-    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'ChoXacNhan',  -- ChoXacNhan, DaXacNhan, DaHuy
+    TrangThai NVARCHAR(20) NOT NULL DEFAULT N'ChoXacNhan',
     GhiChu NVARCHAR(255) NULL,
     NgayTao DATETIME NOT NULL DEFAULT GETDATE(),
     NgayXacNhan DATETIME NULL,
@@ -372,6 +385,15 @@ INSERT INTO ChiNhanh (TenChiNhanh, DiaChi, SoDienThoai, LaTruSoChinh, TrangThai)
 GO
 
 -- =============================================
+-- DỮ LIỆU MẪU: BẬC GIẢM GIÁ XẢ KHO
+-- =============================================
+INSERT INTO BacGiamGiaXaKho (TenBac, SoNgayConLaiToiDa, MucGiamGiaPhanTram, TrangThai) VALUES
+(N'Đợt 1 - Cận hạn', 90, 15, 1),
+(N'Đợt 2 - Gần hết hạn', 30, 30, 1),
+(N'Đợt 3 - Sắp hết hạn', 7, 50, 1);
+GO
+
+-- =============================================
 -- DỮ LIỆU MẪU: DANH MỤC
 -- =============================================
 INSERT INTO DanhMuc (TenDanhMuc, MoTa) VALUES
@@ -411,7 +433,7 @@ INSERT INTO CongDung (TenCongDung, MoTa) VALUES
 GO
 
 -- =============================================
--- DỮ LIỆU MẪU: SẢN PHẨM (SoLuongTon/HanSuDung đặt tạm, sẽ tự đồng bộ từ LoHang qua code)
+-- DỮ LIỆU MẪU: SẢN PHẨM
 -- =============================================
 INSERT INTO SanPham (TenSanPham, DanhMucID, MoTaChiTiet, XuatXu, GiaBan, SoLuongTon, DonViTinh, HanSuDung, TrangThai)
 VALUES
@@ -487,54 +509,43 @@ SELECT SanPhamID, N'/images/products/' + CAST(SanPhamID AS NVARCHAR) + N'_1.jpg'
 GO
 
 -- =============================================
--- DỮ LIỆU MẪU: LÔ HÀNG (thay thế cho SoLuongTon cố định trước đây)
+-- DỮ LIỆU MẪU: LÔ HÀNG
 -- =============================================
 DECLARE @CN1 INT = (SELECT ChiNhanhID FROM ChiNhanh WHERE LaTruSoChinh = 1);
 DECLARE @CN2 INT = (SELECT ChiNhanhID FROM ChiNhanh WHERE LaTruSoChinh = 0);
 
--- Trà xanh Thái Nguyên: 2 lô ở 2 chi nhánh khác nhau
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN1, N'LOT-001', '2026-01-15', '2027-06-30', 70, 70 FROM SanPham WHERE TenSanPham = N'Trà xanh Thái Nguyên';
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN2, N'LOT-002', '2026-02-01', '2027-08-15', 50, 50 FROM SanPham WHERE TenSanPham = N'Trà xanh Thái Nguyên';
 
--- Trà hoa cúc mật ong
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN1, N'LOT-001', '2026-01-10', '2027-03-15', 80, 80 FROM SanPham WHERE TenSanPham = N'Trà hoa cúc mật ong';
 
--- Trà atiso Đà Lạt
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN1, N'LOT-001', '2025-12-20', '2027-01-20', 150, 150 FROM SanPham WHERE TenSanPham = N'Trà atiso Đà Lạt';
 
--- Trà ô long sữa Đài Loan
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN2, N'LOT-001', '2026-01-05', '2026-12-10', 60, 60 FROM SanPham WHERE TenSanPham = N'Trà ô long sữa Đài Loan';
 
--- Trà gừng mật ong
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN1, N'LOT-001', '2026-01-20', '2027-02-28', 100, 100 FROM SanPham WHERE TenSanPham = N'Trà gừng mật ong';
 
--- Trà nhài thượng hạng
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN2, N'LOT-001', '2026-02-10', '2027-05-01', 70, 70 FROM SanPham WHERE TenSanPham = N'Trà nhài thượng hạng';
 
--- Trà đen Ceylon
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN1, N'LOT-001', '2025-11-15', '2026-11-15', 45, 45 FROM SanPham WHERE TenSanPham = N'Trà đen Ceylon';
 
--- Trà bạc hà thanh lọc
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN1, N'LOT-001', '2026-02-05', '2027-04-10', 90, 90 FROM SanPham WHERE TenSanPham = N'Trà bạc hà thanh lọc';
 
--- Trà kỷ tử táo đỏ
 INSERT INTO LoHang (SanPhamID, ChiNhanhID, SoLo, NgayNhap, HanSuDung, SoLuongNhap, SoLuongConLai)
 SELECT SanPhamID, @CN2, N'LOT-001', '2026-02-15', '2027-07-01', 55, 55 FROM SanPham WHERE TenSanPham = N'Trà kỷ tử táo đỏ';
-
--- Trà xanh matcha sấy lạnh: hết hàng, không có lô nào còn hàng
 GO
 
 -- =============================================
--- ĐỒNG BỘ TẠM SoLuongTon/HanSuDung TỪ LoHang (sau này code C# tự làm việc này khi có thay đổi)
+-- ĐỒNG BỘ TẠM SoLuongTon/HanSuDung TỪ LoHang
 -- =============================================
 UPDATE sp
 SET sp.SoLuongTon = ISNULL(tong.TongConLai, 0),
@@ -564,17 +575,14 @@ INSERT INTO TaiKhoan (TenDangNhap, MatKhauHash, Email, SoDienThoai, VaiTroID, Tr
  (SELECT VaiTroID FROM VaiTro WHERE TenVaiTro = N'KhachHang'), 1);
 GO
 
--- Admin Khải: ChiNhanhID = NULL → quản trị viên tổng
 INSERT INTO NhanVien (TaiKhoanID, ChiNhanhID, HoTen, ChucVu, NgayVaoLam)
 SELECT TaiKhoanID, NULL, N'Nguyễn Văn Khải', N'Quản trị viên tổng', '2025-01-01'
 FROM TaiKhoan WHERE TenDangNhap = N'admin';
 
--- Nhân viên 01: thuộc Chi nhánh Quận 1
 INSERT INTO NhanVien (TaiKhoanID, ChiNhanhID, HoTen, ChucVu, NgayVaoLam)
 SELECT TaiKhoanID, (SELECT ChiNhanhID FROM ChiNhanh WHERE LaTruSoChinh = 1), N'Phan Thanh Bình', N'Quản lý chi nhánh', '2025-02-01'
 FROM TaiKhoan WHERE TenDangNhap = N'nhanvien01';
 
--- Nhân viên 02: thuộc Chi nhánh Thủ Đức
 INSERT INTO NhanVien (TaiKhoanID, ChiNhanhID, HoTen, ChucVu, NgayVaoLam)
 SELECT TaiKhoanID, (SELECT ChiNhanhID FROM ChiNhanh WHERE LaTruSoChinh = 0), N'Trần Minh Phúc', N'Quản lý chi nhánh', '2025-03-01'
 FROM TaiKhoan WHERE TenDangNhap = N'nhanvien02';
@@ -599,7 +607,7 @@ VALUES
 GO
 
 -- =============================================
--- DỮ LIỆU MẪU: 1 ĐƠN HÀNG TEST (gắn Chi nhánh + Lô hàng cụ thể)
+-- DỮ LIỆU MẪU: 1 ĐƠN HÀNG TEST
 -- =============================================
 DECLARE @KhachHangID INT = (SELECT KhachHangID FROM KhachHang kh
     JOIN TaiKhoan tk ON kh.TaiKhoanID = tk.TaiKhoanID WHERE tk.TenDangNhap = N'khachhang01');

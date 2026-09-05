@@ -17,6 +17,9 @@ namespace TraSayKho.API.DTOs
         public DateOnly? NgayKetThucApDungGiam { get; set; }
         public string TrangThai { get; set; } = string.Empty;
         public int SoNgayConLaiDenHan { get; set; }   // tính sẵn, tiện cho Web hiển thị cảnh báo
+
+        public bool LaGiamGiaTuDong { get; set; }     
+        public decimal GiaSauGiam { get; set; } 
     }
 
     public class LoHangCreateDto

@@ -1,7 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TraSayKho.API.DTOs;
 using TraSayKho.API.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 
 namespace TraSayKho.API.Controllers
 {
@@ -13,6 +13,7 @@ namespace TraSayKho.API.Controllers
         private readonly IChiNhanhService _service;
         public ChiNhanhController(IChiNhanhService service) => _service = service;
 
+        // Ai cũng xem được danh sách chi nhánh (cần thiết để chọn lúc tạo Lô hàng, Phiếu điều chuyển...)
         [HttpGet]
         public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync());
 
@@ -24,7 +25,9 @@ namespace TraSayKho.API.Controllers
             return Ok(result);
         }
 
+        // CHỈ Admin mới được tạo/sửa/xóa chi nhánh
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] ChiNhanhCreateDto dto)
         {
             var (success, errorMessage, result) = await _service.CreateAsync(dto);
@@ -33,6 +36,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] ChiNhanhUpdateDto dto)
         {
             var (success, errorMessage) = await _service.UpdateAsync(id, dto);
@@ -41,6 +45,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var success = await _service.SoftDeleteAsync(id);

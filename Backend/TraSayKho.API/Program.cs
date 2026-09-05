@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi;
+using TraSayKho.API.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,7 @@ builder.Services.AddScoped<IChiNhanhRepository, ChiNhanhRepository>();
 builder.Services.AddScoped<ILoHangRepository, LoHangRepository>();
 builder.Services.AddScoped<IPhieuDieuChuyenRepository, PhieuDieuChuyenRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<IBacGiamGiaRepository, BacGiamGiaRepository>();
 
 // ==== ĐĂNG KÝ SERVICE ====
 builder.Services.AddScoped<ISanPhamService, SanPhamService>();
@@ -45,6 +47,7 @@ builder.Services.AddScoped<IChiNhanhService, ChiNhanhService>();
 builder.Services.AddScoped<ILoHangService, LoHangService>();
 builder.Services.AddScoped<IPhieuDieuChuyenService, PhieuDieuChuyenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IBacGiamGiaService, BacGiamGiaService>();
 
 // Add services to the container.
 builder.Services.AddControllers();

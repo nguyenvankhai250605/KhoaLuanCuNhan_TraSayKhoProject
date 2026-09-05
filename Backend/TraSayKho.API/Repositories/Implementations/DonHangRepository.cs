@@ -15,6 +15,7 @@ namespace TraSayKho.API.Repositories.Implementations
             return await _context.DonHangs
                 .Include(dh => dh.KhachHang)
                 .Include(dh => dh.TrangThai)
+                .Include(dh => dh.ChiNhanh)
                 .ToListAsync();
         }
 
@@ -23,6 +24,7 @@ namespace TraSayKho.API.Repositories.Implementations
             return await _context.DonHangs
                 .Include(dh => dh.KhachHang)
                 .Include(dh => dh.TrangThai)
+                .Include(dh => dh.ChiNhanh)
                 .Include(dh => dh.ChiTietDonHangs)
                     .ThenInclude(ct => ct.SanPham)
                 .FirstOrDefaultAsync(dh => dh.DonHangId == id);
@@ -46,7 +48,6 @@ namespace TraSayKho.API.Repositories.Implementations
 
             donHang.TrangThaiId = trangThaiIdMoi;
 
-            // Ghi log lịch sử thay đổi trạng thái
             _context.LichSuTrangThaiDonHangs.Add(new LichSuTrangThaiDonHang
             {
                 DonHangId = donHangId,

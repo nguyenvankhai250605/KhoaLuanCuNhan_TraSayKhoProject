@@ -8,30 +8,42 @@ namespace TraSayKho.API.Services.Implementations
     public class LoHangService : ILoHangService
     {
         private readonly ILoHangRepository _repository;
-        public LoHangService(ILoHangRepository repository) => _repository = repository;
+        private readonly IBacGiamGiaRepository _bacGiamGiaRepository;
+
+        public LoHangService(ILoHangRepository repository, IBacGiamGiaRepository bacGiamGiaRepository)
+        {
+            _repository = repository;
+            _bacGiamGiaRepository = bacGiamGiaRepository;
+        }
 
         public async Task<List<LoHangDto>> GetAllAsync()
         {
             var list = await _repository.GetAllAsync();
-            return list.Select(MapToDto).ToList();
+            var cacBac = await _bacGiamGiaRepository.GetDangHoatDongAsync();
+            return list.Select(lh => MapToDto(lh, cacBac)).ToList();
         }
 
         public async Task<LoHangDto?> GetByIdAsync(int id)
         {
             var lh = await _repository.GetByIdAsync(id);
-            return lh == null ? null : MapToDto(lh);
+            if (lh == null) return null;
+
+            var cacBac = await _bacGiamGiaRepository.GetDangHoatDongAsync();
+            return MapToDto(lh, cacBac);
         }
 
         public async Task<List<LoHangDto>> GetBySanPhamAsync(int sanPhamId)
         {
             var list = await _repository.GetBySanPhamAsync(sanPhamId);
-            return list.Select(MapToDto).ToList();
+            var cacBac = await _bacGiamGiaRepository.GetDangHoatDongAsync();
+            return list.Select(lh => MapToDto(lh, cacBac)).ToList();
         }
 
         public async Task<List<LoHangDto>> GetSapHetHanAsync(int soNgayNguong)
         {
             var list = await _repository.GetSapHetHanAsync(soNgayNguong);
-            return list.Select(MapToDto).ToList();
+            var cacBac = await _bacGiamGiaRepository.GetDangHoatDongAsync();
+            return list.Select(lh => MapToDto(lh, cacBac)).ToList();
         }
 
         public async Task<(bool Success, string? ErrorMessage, LoHangDto? Result)> CreateAsync(LoHangCreateDto dto)
@@ -61,11 +73,10 @@ namespace TraSayKho.API.Services.Implementations
             };
 
             var created = await _repository.AddAsync(loHang);
-
-            // Ngay sau khi nhập lô mới, đồng bộ lại tồn kho tổng của sản phẩm
             await _repository.DongBoTonKhoSanPhamAsync(dto.SanPhamId);
 
-            return (true, null, MapToDto(created));
+            var cacBac = await _bacGiamGiaRepository.GetDangHoatDongAsync();
+            return (true, null, MapToDto(created, cacBac));
         }
 
         public async Task<(bool Success, string? ErrorMessage)> BatXaKhoAsync(int loHangId, XaKhoDto dto)
@@ -99,9 +110,38 @@ namespace TraSayKho.API.Services.Implementations
             return success ? (true, null) : (false, "Không thể hủy xả kho.");
         }
 
-        private static LoHangDto MapToDto(LoHang lh)
+        // ==== HÀM QUAN TRỌNG NHẤT: quyết định mức giảm cuối cùng áp dụng cho 1 lô ====
+        private static LoHangDto MapToDto(LoHang lh, List<BacGiamGiaXaKho> cacBacDangHoatDong)
         {
-            var soNgayConLai = lh.HanSuDung.DayNumber - DateOnly.FromDateTime(DateTime.Now).DayNumber;
+            var homNay = DateOnly.FromDateTime(DateTime.Now);
+            var soNgayConLai = lh.HanSuDung.DayNumber - homNay.DayNumber;
+
+            decimal? mucGiamCuoiCung;
+            bool laGiamTuDong;
+
+            // Ưu tiên 1: nếu nhân viên đã BẤM TAY xả kho (còn hiệu lực theo ngày) → dùng giá trị đó, không tự động ghi đè
+            bool dangCoGiamThuCong = lh.MucGiamGiaHienTai.HasValue
+                && lh.NgayBatDauApDungGiam.HasValue && lh.NgayKetThucApDungGiam.HasValue
+                && homNay >= lh.NgayBatDauApDungGiam.Value && homNay <= lh.NgayKetThucApDungGiam.Value;
+
+            if (dangCoGiamThuCong)
+            {
+                mucGiamCuoiCung = lh.MucGiamGiaHienTai;
+                laGiamTuDong = false;
+            }
+            else
+            {
+                // Ưu tiên 2: tự động tìm bậc giảm giá phù hợp nhất theo số ngày còn lại
+                // (cacBacDangHoatDong đã sắp từ ngưỡng nhỏ nhất → lớn nhất, nên bậc đầu tiên khớp là bậc gấp nhất, ưu tiên cao nhất)
+                var bacPhuHop = cacBacDangHoatDong.FirstOrDefault(b => soNgayConLai <= b.SoNgayConLaiToiDa);
+
+                mucGiamCuoiCung = bacPhuHop?.MucGiamGiaPhanTram;
+                laGiamTuDong = bacPhuHop != null;
+            }
+
+            var giaSauGiam = mucGiamCuoiCung.HasValue
+                ? lh.SanPham.GiaBan * (1 - mucGiamCuoiCung.Value / 100)
+                : lh.SanPham.GiaBan;
 
             return new LoHangDto
             {
@@ -115,11 +155,13 @@ namespace TraSayKho.API.Services.Implementations
                 HanSuDung = lh.HanSuDung,
                 SoLuongNhap = lh.SoLuongNhap,
                 SoLuongConLai = lh.SoLuongConLai,
-                MucGiamGiaHienTai = lh.MucGiamGiaHienTai,
+                MucGiamGiaHienTai = mucGiamCuoiCung,
                 NgayBatDauApDungGiam = lh.NgayBatDauApDungGiam,
                 NgayKetThucApDungGiam = lh.NgayKetThucApDungGiam,
                 TrangThai = lh.TrangThai,
-                SoNgayConLaiDenHan = soNgayConLai
+                SoNgayConLaiDenHan = soNgayConLai,
+                LaGiamGiaTuDong = laGiamTuDong,
+                GiaSauGiam = Math.Round(giaSauGiam, 0)
             };
         }
     }
