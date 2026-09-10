@@ -6,11 +6,14 @@ namespace TraSayKho.API.Repositories.Interfaces
     {
         Task<bool> ChiNhanhExistsAsync(int chiNhanhId);
         Task<bool> NhanVienExistsAsync(int nhanVienId);
-        Task<LoHang?> GetLoHangByIdAsync(int loHangId);
+        Task<List<LoHang>> GetLoHangConHangTheoFefoAsync(int sanPhamId, int chiNhanhId);
         Task<List<PhieuDieuChuyenKho>> GetAllAsync();
         Task<PhieuDieuChuyenKho?> GetByIdAsync(int id);
-        Task<PhieuDieuChuyenKho> CreateAsync(PhieuDieuChuyenKho phieu, List<ChiTietPhieuDieuChuyen> chiTiets);
-        Task<bool> XacNhanAsync(int phieuId, int nhanVienXacNhanId);
-        Task<bool> HuyAsync(int phieuId);
+        Task<PhieuDieuChuyenKho> TaoYeuCauAsync(PhieuDieuChuyenKho phieu, List<ChiTietPhieuDieuChuyen> chiTiets);
+        Task<bool> DuyetAsync(int phieuId);
+        Task<bool> TuChoiAsync(int phieuId, string lyDo);
+        Task<bool> XacNhanXuatKhoAsync(int phieuId, int nhanVienId);
+        Task<bool> XacNhanNhanHangAsync(int phieuId, int nhanVienId);
+        Task DongBoTonKhoSanPhamAsync(int sanPhamId);
     }
 }

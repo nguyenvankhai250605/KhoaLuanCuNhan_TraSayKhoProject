@@ -38,4 +38,10 @@ namespace TraSayKho.API.DTOs
         public DateOnly NgayBatDauApDung { get; set; }
         public DateOnly NgayKetThucApDung { get; set; }
     }
+
+    public class DieuChinhTonKhoDto
+    {
+        public int SoLuongThayDoi { get; set; }   // số dương = cộng thêm, số âm = trừ đi
+        public string LyDo { get; set; } = string.Empty;   // "XuatKhoGiaoHang" hoặc "DieuChinhKiemKe"
+    }
 }

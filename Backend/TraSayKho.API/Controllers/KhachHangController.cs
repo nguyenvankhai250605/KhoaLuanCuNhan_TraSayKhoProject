@@ -1,13 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TraSayKho.API.DTOs;
 using TraSayKho.API.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 
 namespace TraSayKho.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin,NhanVien")]
+    [Authorize(Roles = "Admin,NhanVien,ChuCuaHang")]
     public class KhachHangController : ControllerBase
     {
         private readonly IKhachHangService _service;
@@ -25,6 +25,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> Update(int id, [FromBody] KhachHangUpdateDto dto)
         {
             var (success, errorMessage) = await _service.UpdateAsync(id, dto);
@@ -33,6 +34,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpPut("{id}/trangthai")]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> SetTrangThai(int id, [FromBody] KhoaTaiKhoanDto dto)
         {
             var success = await _service.SetTrangThaiTaiKhoanAsync(id, dto.TrangThai);

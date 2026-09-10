@@ -13,5 +13,6 @@ namespace TraSayKho.API.Repositories.Interfaces
         Task<LoHang> AddAsync(LoHang loHang);
         Task<bool> UpdateXaKhoAsync(int loHangId, decimal? mucGiam, DateOnly? tuNgay, DateOnly? denNgay);
         Task DongBoTonKhoSanPhamAsync(int sanPhamId);
+        Task<bool> DieuChinhSoLuongConLaiAsync(int loHangId, int soLuongThayDoi);
     }
 }

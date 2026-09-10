@@ -22,39 +22,48 @@ namespace TraSayKho.API.Services.Implementations
             return phieu == null ? null : MapToDto(phieu);
         }
 
-        public async Task<(bool Success, string? ErrorMessage, PhieuDieuChuyenDto? Result)> CreateAsync(PhieuDieuChuyenCreateDto dto)
+        // BƯỚC 1: Chủ cửa hàng chi nhánh thiếu hàng tạo yêu cầu xin hàng từ chi nhánh khác
+        public async Task<(bool Success, string? ErrorMessage, PhieuDieuChuyenDto? Result)> TaoYeuCauAsync(PhieuDieuChuyenCreateDto dto)
         {
             if (dto.ChiNhanhGuiId == dto.ChiNhanhNhanId)
-                return (false, "Chi nhánh gửi và chi nhánh nhận phải khác nhau.", null);
+                return (false, "Chi nhánh nguồn và chi nhánh nhận phải khác nhau.", null);
 
             if (!await _repository.ChiNhanhExistsAsync(dto.ChiNhanhGuiId))
-                return (false, "Chi nhánh gửi không tồn tại.", null);
+                return (false, "Chi nhánh nguồn (chi nhánh gửi) không tồn tại.", null);
 
             if (!await _repository.ChiNhanhExistsAsync(dto.ChiNhanhNhanId))
                 return (false, "Chi nhánh nhận không tồn tại.", null);
 
             if (!await _repository.NhanVienExistsAsync(dto.NhanVienTaoId))
-                return (false, "Nhân viên tạo phiếu không tồn tại.", null);
+                return (false, "Người tạo yêu cầu không tồn tại.", null);
 
             if (dto.ChiTiet == null || dto.ChiTiet.Count == 0)
-                return (false, "Phiếu điều chuyển phải có ít nhất 1 dòng sản phẩm.", null);
+                return (false, "Yêu cầu điều chuyển phải có ít nhất 1 sản phẩm.", null);
 
-            // Kiểm tra từng lô: phải thuộc đúng chi nhánh gửi, và đủ số lượng
-            foreach (var ct in dto.ChiTiet)
+            var chiTiets = new List<ChiTietPhieuDieuChuyen>();
+
+            // Với mỗi sản phẩm cần xin, tìm đúng lô theo FEFO tại chi nhánh nguồn được chọn
+            foreach (var dong in dto.ChiTiet)
             {
-                var loHang = await _repository.GetLoHangByIdAsync(ct.LoHangId);
+                if (dong.SoLuong <= 0)
+                    return (false, "Số lượng phải lớn hơn 0.", null);
 
-                if (loHang == null)
-                    return (false, $"Không tìm thấy lô hàng ID {ct.LoHangId}.", null);
+                var cacLo = await _repository.GetLoHangConHangTheoFefoAsync(dong.SanPhamId, dto.ChiNhanhGuiId);
+                var loPhuHop = cacLo.FirstOrDefault(lo => lo.SoLuongConLai >= dong.SoLuong);
 
-                if (loHang.ChiNhanhId != dto.ChiNhanhGuiId)
-                    return (false, $"Lô hàng '{loHang.SoLo}' không thuộc chi nhánh gửi.", null);
+                if (loPhuHop == null)
+                {
+                    var tongConHang = cacLo.Sum(lo => lo.SoLuongConLai);
+                    return (false,
+                        $"Chi nhánh nguồn không có lô nào đủ {dong.SoLuong} sản phẩm ID {dong.SanPhamId} (tổng tồn hiện có: {tongConHang}).",
+                        null);
+                }
 
-                if (ct.SoLuong <= 0)
-                    return (false, "Số lượng điều chuyển phải lớn hơn 0.", null);
-
-                if (ct.SoLuong > loHang.SoLuongConLai)
-                    return (false, $"Lô hàng '{loHang.SoLo}' chỉ còn {loHang.SoLuongConLai}, không đủ để chuyển {ct.SoLuong}.", null);
+                chiTiets.Add(new ChiTietPhieuDieuChuyen
+                {
+                    LoHangId = loPhuHop.LoHangId,
+                    SoLuong = dong.SoLuong
+                });
             }
 
             var phieu = new PhieuDieuChuyenKho
@@ -63,47 +72,80 @@ namespace TraSayKho.API.Services.Implementations
                 ChiNhanhNhanId = dto.ChiNhanhNhanId,
                 NhanVienTaoId = dto.NhanVienTaoId,
                 GhiChu = dto.GhiChu,
-                TrangThai = "ChoXacNhan",
+                TrangThai = "ChoDuyet",
                 NgayTao = DateTime.Now
             };
 
-            var chiTiets = dto.ChiTiet.Select(ct => new ChiTietPhieuDieuChuyen
-            {
-                LoHangId = ct.LoHangId,
-                SoLuong = ct.SoLuong
-            }).ToList();
-
-            var created = await _repository.CreateAsync(phieu, chiTiets);
+            var created = await _repository.TaoYeuCauAsync(phieu, chiTiets);
             return (true, null, MapToDto(created));
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> XacNhanAsync(int id, XacNhanPhieuDto dto)
+        // BƯỚC 2a: Chủ cửa hàng chi nhánh NGUỒN duyệt yêu cầu
+        public async Task<(bool Success, string? ErrorMessage)> DuyetAsync(int id)
         {
             var phieu = await _repository.GetByIdAsync(id);
-            if (phieu == null)
-                return (false, "Không tìm thấy phiếu điều chuyển.");
+            if (phieu == null) return (false, "Không tìm thấy phiếu điều chuyển.");
 
-            if (phieu.TrangThai != "ChoXacNhan")
-                return (false, "Phiếu này đã được xử lý trước đó (đã xác nhận hoặc đã hủy).");
+            if (phieu.TrangThai != "ChoDuyet")
+                return (false, $"Chỉ có thể duyệt phiếu đang ở trạng thái 'Chờ duyệt'. Phiếu này đang ở trạng thái '{phieu.TrangThai}'.");
 
-            if (!await _repository.NhanVienExistsAsync(dto.NhanVienXacNhanId))
-                return (false, "Nhân viên xác nhận không tồn tại.");
-
-            var success = await _repository.XacNhanAsync(id, dto.NhanVienXacNhanId);
-            return success ? (true, null) : (false, "Không thể xác nhận phiếu điều chuyển.");
+            var success = await _repository.DuyetAsync(id);
+            return success ? (true, null) : (false, "Không thể duyệt phiếu.");
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> HuyAsync(int id)
+        // BƯỚC 2b: Chủ cửa hàng chi nhánh NGUỒN từ chối yêu cầu
+        public async Task<(bool Success, string? ErrorMessage)> TuChoiAsync(int id, TuChoiPhieuDto dto)
         {
             var phieu = await _repository.GetByIdAsync(id);
-            if (phieu == null)
-                return (false, "Không tìm thấy phiếu điều chuyển.");
+            if (phieu == null) return (false, "Không tìm thấy phiếu điều chuyển.");
 
-            if (phieu.TrangThai != "ChoXacNhan")
-                return (false, "Chỉ có thể hủy phiếu đang ở trạng thái chờ xác nhận.");
+            if (phieu.TrangThai != "ChoDuyet")
+                return (false, "Chỉ có thể từ chối phiếu đang ở trạng thái 'Chờ duyệt'.");
 
-            var success = await _repository.HuyAsync(id);
-            return success ? (true, null) : (false, "Không thể hủy phiếu điều chuyển.");
+            if (string.IsNullOrWhiteSpace(dto.LyDoTuChoi))
+                return (false, "Vui lòng nhập lý do từ chối.");
+
+            var success = await _repository.TuChoiAsync(id, dto.LyDoTuChoi);
+            return success ? (true, null) : (false, "Không thể từ chối phiếu.");
+        }
+
+        // BƯỚC 3: Nhân viên chi nhánh NGUỒN xác nhận đã xuất kho thật
+        public async Task<(bool Success, string? ErrorMessage)> XacNhanXuatKhoAsync(int id, XacNhanThucHienDto dto)
+        {
+            var phieu = await _repository.GetByIdAsync(id);
+            if (phieu == null) return (false, "Không tìm thấy phiếu điều chuyển.");
+
+            if (phieu.TrangThai != "DaDuyet")
+                return (false, "Phiếu cần được duyệt trước khi xuất kho.");
+
+            if (!await _repository.NhanVienExistsAsync(dto.NhanVienId))
+                return (false, "Nhân viên không tồn tại.");
+
+            try
+            {
+                var success = await _repository.XacNhanXuatKhoAsync(id, dto.NhanVienId);
+                return success ? (true, null) : (false, "Không thể xác nhận xuất kho.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        // BƯỚC 4: Nhân viên chi nhánh ĐÍCH xác nhận đã nhận hàng thật
+        public async Task<(bool Success, string? ErrorMessage)> XacNhanNhanHangAsync(int id, XacNhanThucHienDto dto)
+        {
+            var phieu = await _repository.GetByIdAsync(id);
+            if (phieu == null) return (false, "Không tìm thấy phiếu điều chuyển.");
+
+            if (phieu.TrangThai != "DangVanChuyen")
+                return (false, "Phiếu cần được xuất kho trước khi xác nhận nhận hàng.");
+
+            if (!await _repository.NhanVienExistsAsync(dto.NhanVienId))
+                return (false, "Nhân viên không tồn tại.");
+
+            var success = await _repository.XacNhanNhanHangAsync(id, dto.NhanVienId);
+            return success ? (true, null) : (false, "Không thể xác nhận nhận hàng.");
         }
 
         private static PhieuDieuChuyenDto MapToDto(PhieuDieuChuyenKho p) => new()

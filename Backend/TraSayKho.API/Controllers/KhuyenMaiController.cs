@@ -1,13 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TraSayKho.API.DTOs;
 using TraSayKho.API.Services.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 
 namespace TraSayKho.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin,NhanVien")]
+    [Authorize(Roles = "Admin,NhanVien,ChuCuaHang")]
     public class KhuyenMaiController : ControllerBase
     {
         private readonly IKhuyenMaiService _service;
@@ -25,6 +25,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> Create([FromBody] KhuyenMaiCreateDto dto)
         {
             var (success, errorMessage, result) = await _service.CreateAsync(dto);
@@ -33,6 +34,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> Update(int id, [FromBody] KhuyenMaiUpdateDto dto)
         {
             var (success, errorMessage) = await _service.UpdateAsync(id, dto);
@@ -41,6 +43,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> Delete(int id)
         {
             var success = await _service.SoftDeleteAsync(id);

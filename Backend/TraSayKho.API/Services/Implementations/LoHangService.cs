@@ -164,5 +164,20 @@ namespace TraSayKho.API.Services.Implementations
                 GiaSauGiam = Math.Round(giaSauGiam, 0)
             };
         }
+        public async Task<(bool Success, string? ErrorMessage)> DieuChinhTonKhoAsync(int loHangId, DieuChinhTonKhoDto dto)
+        {
+            var loHang = await _repository.GetByIdAsync(loHangId);
+            if (loHang == null)
+                return (false, "Không tìm thấy lô hàng.");
+
+            if (dto.SoLuongThayDoi == 0)
+                return (false, "Số lượng thay đổi phải khác 0.");
+
+            if (string.IsNullOrWhiteSpace(dto.LyDo))
+                return (false, "Vui lòng nhập lý do điều chỉnh.");
+
+            var success = await _repository.DieuChinhSoLuongConLaiAsync(loHangId, dto.SoLuongThayDoi);
+            return success ? (true, null) : (false, "Số lượng điều chỉnh không hợp lệ (âm kho hoặc vượt số lượng nhập gốc).");
+        }
     }
 }

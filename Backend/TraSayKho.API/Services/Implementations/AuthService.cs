@@ -73,8 +73,11 @@ namespace TraSayKho.API.Services.Implementations
             if (await _repository.EmailExistsAsync(dto.Email))
                 return (false, "Email đã được sử dụng.");
 
-            if (dto.TenVaiTro != "Admin" && dto.TenVaiTro != "NhanVien")
-                return (false, "Vai trò không hợp lệ (chỉ chấp nhận Admin hoặc NhanVien).");
+            /* if (dto.TenVaiTro != "Admin" && dto.TenVaiTro != "NhanVien")
+                return (false, "Vai trò không hợp lệ (chỉ chấp nhận Admin hoặc NhanVien)."); */
+
+            if (dto.TenVaiTro != "Admin" && dto.TenVaiTro != "NhanVien" && dto.TenVaiTro != "ChuCuaHang")
+                return (false, "Vai trò không hợp lệ (chỉ chấp nhận Admin, NhanVien hoặc ChuCuaHang).");
 
             if (dto.ChiNhanhId.HasValue && !await _repository.ChiNhanhExistsAsync(dto.ChiNhanhId.Value))
                 return (false, "Chi nhánh không tồn tại.");

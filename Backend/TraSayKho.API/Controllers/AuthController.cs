@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TraSayKho.API.DTOs;
 using TraSayKho.API.Services.Interfaces;
@@ -19,7 +20,9 @@ namespace TraSayKho.API.Controllers
             return Ok(new { message = "Đăng ký thành công. Vui lòng đăng nhập." });
         }
 
+        // Chỉ Quản trị hệ thống mới được tạo tài khoản nội bộ (Quản lý cửa hàng / Nhân viên)
         [HttpPost("taonhanvien")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> TaoNhanVien([FromBody] TaoTaiKhoanNhanVienDto dto)
         {
             var (success, errorMessage) = await _service.TaoNhanVienAsync(dto);

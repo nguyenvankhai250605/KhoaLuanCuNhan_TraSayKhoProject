@@ -4,7 +4,6 @@ namespace TraSayKho.API.Helpers
 {
     public static class ClaimsExtensions
     {
-        // Lấy ChiNhanhId từ token, null nghĩa là Admin tổng
         public static int? GetChiNhanhId(this ClaimsPrincipal user)
         {
             var value = user.FindFirst("ChiNhanhId")?.Value;
@@ -16,10 +15,16 @@ namespace TraSayKho.API.Helpers
             return user.IsInRole("Admin");
         }
 
-        // Kiểm tra: người dùng có được phép thao tác dữ liệu của chiNhanhId này không
+        // Chỉ Admin (Quản trị hệ thống) mới xem được toàn bộ chuỗi cửa hàng.
+        // Quản lý cửa hàng KHÔNG có quyền này — vẫn bị giới hạn theo đúng 1 chi nhánh.
+        public static bool CoQuyenXemToanHeThong(this ClaimsPrincipal user)
+        {
+            return user.IsInRole("Admin");
+        }
+
         public static bool DuocPhepThaoTacChiNhanh(this ClaimsPrincipal user, int chiNhanhId)
         {
-            if (user.LaAdmin()) return true;   // Admin luôn được phép
+            if (user.LaAdmin()) return true;
 
             var chiNhanhCuaToi = user.GetChiNhanhId();
             return chiNhanhCuaToi.HasValue && chiNhanhCuaToi.Value == chiNhanhId;

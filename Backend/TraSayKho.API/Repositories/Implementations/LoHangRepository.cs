@@ -97,5 +97,25 @@ namespace TraSayKho.API.Repositories.Implementations
 
             await _context.SaveChangesAsync();
         }
+
+        public async Task<bool> DieuChinhSoLuongConLaiAsync(int loHangId, int soLuongThayDoi)
+        {
+            var loHang = await _context.LoHangs.FindAsync(loHangId);
+            if (loHang == null) return false;
+
+            var soLuongMoi = loHang.SoLuongConLai + soLuongThayDoi;
+            if (soLuongMoi < 0) return false;   // không cho âm kho
+            if (soLuongMoi > loHang.SoLuongNhap) return false;   // không cho vượt số lượng nhập gốc
+
+            loHang.SoLuongConLai = soLuongMoi;
+            loHang.TrangThai = soLuongMoi == 0 ? "HetHang" : "ConHang";
+
+            await _context.SaveChangesAsync();
+
+            // Đồng bộ lại tồn kho tổng của sản phẩm
+            await DongBoTonKhoSanPhamAsync(loHang.SanPhamId);
+
+            return true;
+        }
     }
 }

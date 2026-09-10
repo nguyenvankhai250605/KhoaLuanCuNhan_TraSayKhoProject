@@ -369,7 +369,7 @@ GO
 -- 12. DỮ LIỆU MẪU: HỆ THỐNG
 -- =============================================
 
-INSERT INTO VaiTro (TenVaiTro) VALUES (N'Admin'), (N'NhanVien'), (N'KhachHang');
+INSERT INTO VaiTro (TenVaiTro) VALUES (N'Admin'), (N'ChuCuaHang'), (N'NhanVien'), (N'KhachHang');
 GO
 
 INSERT INTO TrangThaiDonHang (TenTrangThai) VALUES

@@ -26,23 +26,28 @@ namespace TraSayKho.API.DTOs
         public List<ChiTietPhieuDieuChuyenDto> ChiTiet { get; set; } = new();
     }
 
-    public class ChiTietPhieuDieuChuyenCreateDto
+    public class DongDeXuatDto
     {
-        public int LoHangId { get; set; }
+        public int SanPhamId { get; set; }
         public int SoLuong { get; set; }
     }
 
     public class PhieuDieuChuyenCreateDto
     {
-        public int ChiNhanhGuiId { get; set; }
-        public int ChiNhanhNhanId { get; set; }
+        public int ChiNhanhGuiId { get; set; }    // chi nhánh còn tồn, được chọn để xin hàng
+        public int ChiNhanhNhanId { get; set; }   // chi nhánh của người đang tạo yêu cầu (đang thiếu hàng)
         public int NhanVienTaoId { get; set; }
         public string? GhiChu { get; set; }
-        public List<ChiTietPhieuDieuChuyenCreateDto> ChiTiet { get; set; } = new();
+        public List<DongDeXuatDto> ChiTiet { get; set; } = new();
     }
 
-    public class XacNhanPhieuDto
+    public class TuChoiPhieuDto
     {
-        public int NhanVienXacNhanId { get; set; }
+        public string LyDoTuChoi { get; set; } = string.Empty;
+    }
+
+    public class XacNhanThucHienDto
+    {
+        public int NhanVienId { get; set; }
     }
 }
