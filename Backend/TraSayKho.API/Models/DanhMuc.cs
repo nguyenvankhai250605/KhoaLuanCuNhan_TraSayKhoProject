@@ -15,6 +15,8 @@ public partial class DanhMuc
 
     public bool TrangThai { get; set; }
 
+    public virtual ICollection<BacGiamGiaXaKho> BacGiamGiaXaKhos { get; set; } = new List<BacGiamGiaXaKho>();
+
     public virtual DanhMuc? DanhMucCha { get; set; }
 
     public virtual ICollection<DanhMuc> InverseDanhMucCha { get; set; } = new List<DanhMuc>();

@@ -21,11 +21,13 @@ public partial class ChiNhanh
 
     public virtual ICollection<DonHang> DonHangs { get; set; } = new List<DonHang>();
 
-    public virtual ICollection<LoHang> LoHangs { get; set; } = new List<LoHang>();
+    public virtual ICollection<HanMucSanPham> HanMucSanPhams { get; set; } = new List<HanMucSanPham>();
 
     public virtual ICollection<NhanVien> NhanViens { get; set; } = new List<NhanVien>();
 
     public virtual ICollection<PhieuDieuChuyenKho> PhieuDieuChuyenKhoChiNhanhGuis { get; set; } = new List<PhieuDieuChuyenKho>();
 
     public virtual ICollection<PhieuDieuChuyenKho> PhieuDieuChuyenKhoChiNhanhNhans { get; set; } = new List<PhieuDieuChuyenKho>();
+
+    public virtual ICollection<ThungHang> ThungHangs { get; set; } = new List<ThungHang>();
 }

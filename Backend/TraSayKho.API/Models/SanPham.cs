@@ -19,9 +19,9 @@ public partial class SanPham
 
     public int SoLuongTon { get; set; }
 
-    public string? DonViTinh { get; set; }
+    public string DonViTinh { get; set; } = null!;
 
-    public DateOnly? HanSuDung { get; set; }
+    public decimal? KhoiLuongGam { get; set; }
 
     public string TrangThai { get; set; } = null!;
 
@@ -34,6 +34,8 @@ public partial class SanPham
     public virtual ICollection<DanhGium> DanhGia { get; set; } = new List<DanhGium>();
 
     public virtual DanhMuc DanhMuc { get; set; } = null!;
+
+    public virtual HanMucSanPham? HanMucSanPham { get; set; }
 
     public virtual ICollection<HinhAnhSanPham> HinhAnhSanPhams { get; set; } = new List<HinhAnhSanPham>();
 

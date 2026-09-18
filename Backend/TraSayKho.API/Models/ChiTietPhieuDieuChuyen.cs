@@ -9,11 +9,9 @@ public partial class ChiTietPhieuDieuChuyen
 
     public int PhieuDieuChuyenId { get; set; }
 
-    public int LoHangId { get; set; }
-
-    public int SoLuong { get; set; }
-
-    public virtual LoHang LoHang { get; set; } = null!;
+    public int ThungId { get; set; }
 
     public virtual PhieuDieuChuyenKho PhieuDieuChuyen { get; set; } = null!;
+
+    public virtual ThungHang Thung { get; set; } = null!;
 }

@@ -8,114 +8,281 @@ namespace TraSayKho.API.Repositories.Implementations
     public class LoHangRepository : ILoHangRepository
     {
         private readonly TraSayKhoDbContext _context;
-        public LoHangRepository(TraSayKhoDbContext context) => _context = context;
 
-        public async Task<bool> SanPhamExistsAsync(int sanPhamId)
+        public LoHangRepository(
+            TraSayKhoDbContext context)
         {
-            return await _context.SanPhams.AnyAsync(sp => sp.SanPhamId == sanPhamId);
+            _context = context;
         }
 
-        public async Task<bool> ChiNhanhExistsAsync(int chiNhanhId)
+        public async Task<bool>
+            SanPhamExistsAsync(int sanPhamId)
         {
-            return await _context.ChiNhanhs.AnyAsync(cn => cn.ChiNhanhId == chiNhanhId);
+            return await _context.SanPhams
+                .AnyAsync(sp =>
+                    sp.SanPhamId == sanPhamId);
         }
 
-        public async Task<List<LoHang>> GetAllAsync()
+        public async Task<bool>
+            SoLoExistsAsync(string soLo)
+        {
+            return await _context.LoHangs
+                .AnyAsync(lh =>
+                    lh.SoLo == soLo);
+        }
+
+        public async Task<List<LoHang>>
+            GetAllAsync()
         {
             return await _context.LoHangs
                 .Include(lh => lh.SanPham)
-                .Include(lh => lh.ChiNhanh)
-                .OrderBy(lh => lh.HanSuDung)   // mặc định sắp theo FEFO luôn cho tiện nhìn
-                .ToListAsync();
-        }
-
-        public async Task<LoHang?> GetByIdAsync(int id)
-        {
-            return await _context.LoHangs
-                .Include(lh => lh.SanPham)
-                .Include(lh => lh.ChiNhanh)
-                .FirstOrDefaultAsync(lh => lh.LoHangId == id);
-        }
-
-        public async Task<List<LoHang>> GetBySanPhamAsync(int sanPhamId)
-        {
-            return await _context.LoHangs
-                .Include(lh => lh.SanPham)
-                .Include(lh => lh.ChiNhanh)
-                .Where(lh => lh.SanPhamId == sanPhamId)
+                .Include(lh => lh.ThungHangs)
+                    .ThenInclude(t => t.ChiNhanh)
+                .Include(lh => lh.ThungHangs)
+                    .ThenInclude(t =>
+                        t.DonViSanPhams)
                 .OrderBy(lh => lh.HanSuDung)
                 .ToListAsync();
         }
 
-        public async Task<List<LoHang>> GetSapHetHanAsync(int soNgayNguong)
+        public async Task<LoHang?>
+            GetByIdAsync(int id)
         {
-            var ngayNguong = DateOnly.FromDateTime(DateTime.Now.AddDays(soNgayNguong));
-
             return await _context.LoHangs
                 .Include(lh => lh.SanPham)
-                .Include(lh => lh.ChiNhanh)
-                .Where(lh => lh.TrangThai == "ConHang" && lh.HanSuDung <= ngayNguong)
+                .Include(lh => lh.ThungHangs)
+                    .ThenInclude(t => t.ChiNhanh)
+                .Include(lh => lh.ThungHangs)
+                    .ThenInclude(t =>
+                        t.DonViSanPhams)
+                .FirstOrDefaultAsync(lh =>
+                    lh.LoHangId == id);
+        }
+
+        public async Task<List<LoHang>>
+            GetBySanPhamAsync(int sanPhamId)
+        {
+            return await _context.LoHangs
+                .Include(lh => lh.SanPham)
+                .Include(lh => lh.ThungHangs)
+                    .ThenInclude(t => t.ChiNhanh)
+                .Include(lh => lh.ThungHangs)
+                    .ThenInclude(t =>
+                        t.DonViSanPhams)
+                .Where(lh =>
+                    lh.SanPhamId == sanPhamId)
                 .OrderBy(lh => lh.HanSuDung)
                 .ToListAsync();
         }
 
-        public async Task<LoHang> AddAsync(LoHang loHang)
+        public async Task<List<LoHang>>
+            GetSapHetHanAsync()
         {
-            _context.LoHangs.Add(loHang);
-            await _context.SaveChangesAsync();
-
-            await _context.Entry(loHang).Reference(lh => lh.SanPham).LoadAsync();
-            await _context.Entry(loHang).Reference(lh => lh.ChiNhanh).LoadAsync();
-
-            return loHang;
-        }
-
-        public async Task<bool> UpdateXaKhoAsync(int loHangId, decimal? mucGiam, DateOnly? tuNgay, DateOnly? denNgay)
-        {
-            var loHang = await _context.LoHangs.FindAsync(loHangId);
-            if (loHang == null) return false;
-
-            loHang.MucGiamGiaHienTai = mucGiam;
-            loHang.NgayBatDauApDungGiam = tuNgay;
-            loHang.NgayKetThucApDungGiam = denNgay;
-
-            await _context.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task DongBoTonKhoSanPhamAsync(int sanPhamId)
-        {
-            var sanPham = await _context.SanPhams.FindAsync(sanPhamId);
-            if (sanPham == null) return;
-
-            var loConHang = await _context.LoHangs
-                .Where(lh => lh.SanPhamId == sanPhamId && lh.TrangThai == "ConHang")
+            return await _context.LoHangs
+                .Include(lh => lh.SanPham)
+                .Include(lh => lh.ThungHangs)
+                    .ThenInclude(t => t.ChiNhanh)
+                .Include(lh => lh.ThungHangs)
+                    .ThenInclude(t =>
+                        t.DonViSanPhams)
+                .Where(lh =>
+                    lh.TrangThai == "ConHang" &&
+                    lh.ThungHangs.Any(t =>
+                        t.DonViSanPhams.Any(dv =>
+                            dv.TrangThai == "ConKho")))
+                .OrderBy(lh => lh.HanSuDung)
                 .ToListAsync();
+        }
 
-            sanPham.SoLuongTon = loConHang.Sum(lh => lh.SoLuongConLai);
-            sanPham.HanSuDung = loConHang.Any() ? loConHang.Min(lh => lh.HanSuDung) : null;
+        public async Task<LoHang>
+            TaoLoVaPhanBoAsync(
+                LoHang loHang,
+                int chiNhanhChinhId,
+                int soLuongThung,
+                int soDonViMoiThung)
+        {
+            var sanPham = await _context.SanPhams
+                .AsNoTracking()
+                .FirstOrDefaultAsync(sp =>
+                    sp.SanPhamId ==
+                    loHang.SanPhamId);
+
+            if (sanPham == null)
+            {
+                throw new InvalidOperationException(
+                    "Sản phẩm không tồn tại.");
+            }
+
+            string tienToDonVi;
+
+            if (sanPham.DonViTinh == "Hộp")
+            {
+                tienToDonVi = "HOP";
+            }
+            else if (sanPham.DonViTinh == "Gói")
+            {
+                tienToDonVi = "GOI";
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "Đơn vị tính của sản phẩm phải là Hộp hoặc Gói.");
+            }
+
+            await using var transaction =
+                await _context.Database
+                    .BeginTransactionAsync();
+
+            try
+            {
+                _context.LoHangs.Add(loHang);
+                await _context.SaveChangesAsync();
+
+                var soDonViDaTao = 0;
+
+                for (var i = 1;
+                     i <= soLuongThung;
+                     i++)
+                {
+                    var thung = new ThungHang
+                    {
+                        LoHangId =
+                            loHang.LoHangId,
+
+                        ChiNhanhId =
+                            chiNhanhChinhId,
+
+                        MaThung =
+                            $"{loHang.SoLo}-T{i:D3}",
+
+                        SoLuongDonVi =
+                            soDonViMoiThung,
+
+                        NgayPhanBo =
+                            DateOnly.FromDateTime(
+                                DateTime.Now),
+
+                        TrangThai =
+                            "ConHang"
+                    };
+
+                    _context.ThungHangs.Add(thung);
+                    await _context.SaveChangesAsync();
+
+                    var danhSachDonVi =
+                        new List<DonViSanPham>();
+
+                    for (var j = 1;
+                         j <= soDonViMoiThung;
+                         j++)
+                    {
+                        soDonViDaTao++;
+
+                        danhSachDonVi.Add(
+                            new DonViSanPham
+                            {
+                                ThungId =
+                                    thung.ThungId,
+
+                                MaDonVi =
+                                    $"{tienToDonVi}-{loHang.SoLo}-{soDonViDaTao:D6}",
+
+                                TrangThai =
+                                    "ConKho",
+
+                                ChiTietDonHangId =
+                                    null,
+
+                                NgayBan =
+                                    null
+                            });
+                    }
+
+                    _context.DonViSanPhams
+                        .AddRange(danhSachDonVi);
+
+                    await _context.SaveChangesAsync();
+                }
+
+                await transaction.CommitAsync();
+
+                return (await GetByIdAsync(
+                    loHang.LoHangId))!;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task
+            DongBoTonKhoSanPhamAsync(
+                int sanPhamId)
+        {
+            var sanPham =
+                await _context.SanPhams
+                    .FindAsync(sanPhamId);
+
+            if (sanPham == null)
+                return;
+
+            var soLuongConKho =
+                await _context.DonViSanPhams
+                    .CountAsync(dv =>
+                        dv.Thung.LoHang.SanPhamId ==
+                            sanPhamId &&
+                        dv.TrangThai ==
+                            "ConKho");
+
+            sanPham.SoLuongTon =
+                soLuongConKho;
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task<bool> DieuChinhSoLuongConLaiAsync(int loHangId, int soLuongThayDoi)
+        public async Task<DonViSanPham?>
+            GetDonViSanPhamByMaAsync(
+                string maDonVi)
         {
-            var loHang = await _context.LoHangs.FindAsync(loHangId);
-            if (loHang == null) return false;
+            return await _context
+                .DonViSanPhams
 
-            var soLuongMoi = loHang.SoLuongConLai + soLuongThayDoi;
-            if (soLuongMoi < 0) return false;   // không cho âm kho
-            if (soLuongMoi > loHang.SoLuongNhap) return false;   // không cho vượt số lượng nhập gốc
+                .Include(dv => dv.Thung)
+                    .ThenInclude(t =>
+                        t.ChiNhanh)
 
-            loHang.SoLuongConLai = soLuongMoi;
-            loHang.TrangThai = soLuongMoi == 0 ? "HetHang" : "ConHang";
+                .Include(dv => dv.Thung)
+                    .ThenInclude(t =>
+                        t.LoHang)
+                    .ThenInclude(lh =>
+                        lh.SanPham)
 
-            await _context.SaveChangesAsync();
+                .Include(dv =>
+                    dv.ChiTietDonHang)
+                    .ThenInclude(ct =>
+                        ct!.DonHang)
+                    .ThenInclude(dh =>
+                        dh.KhachHang)
 
-            // Đồng bộ lại tồn kho tổng của sản phẩm
-            await DongBoTonKhoSanPhamAsync(loHang.SanPhamId);
+                .Include(dv =>
+                    dv.ChiTietDonHang)
+                    .ThenInclude(ct =>
+                        ct!.DonHang)
+                    .ThenInclude(dh =>
+                        dh.ChiNhanh)
 
-            return true;
+                .FirstOrDefaultAsync(dv =>
+                    dv.MaDonVi == maDonVi);
+        }
+
+        public async Task<ChiNhanh?>
+            GetTruSoChinhAsync()
+        {
+            return await _context.ChiNhanhs
+                .FirstOrDefaultAsync(cn =>
+                    cn.LaTruSoChinh &&
+                    cn.TrangThai);
         }
     }
 }

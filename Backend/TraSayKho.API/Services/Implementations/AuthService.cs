@@ -59,7 +59,7 @@ namespace TraSayKho.API.Services.Implementations
             return (true, null);
         }
 
-        public async Task<(bool Success, string? ErrorMessage)> TaoNhanVienAsync(TaoTaiKhoanNhanVienDto dto)
+        /* public async Task<(bool Success, string? ErrorMessage)> TaoNhanVienAsync(TaoTaiKhoanNhanVienDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.TenDangNhap) || string.IsNullOrWhiteSpace(dto.MatKhau))
                 return (false, "Tên đăng nhập và mật khẩu không được để trống.");
@@ -72,9 +72,6 @@ namespace TraSayKho.API.Services.Implementations
 
             if (await _repository.EmailExistsAsync(dto.Email))
                 return (false, "Email đã được sử dụng.");
-
-            /* if (dto.TenVaiTro != "Admin" && dto.TenVaiTro != "NhanVien")
-                return (false, "Vai trò không hợp lệ (chỉ chấp nhận Admin hoặc NhanVien)."); */
 
             if (dto.TenVaiTro != "Admin" && dto.TenVaiTro != "NhanVien" && dto.TenVaiTro != "ChuCuaHang")
                 return (false, "Vai trò không hợp lệ (chỉ chấp nhận Admin, NhanVien hoặc ChuCuaHang).");
@@ -106,6 +103,88 @@ namespace TraSayKho.API.Services.Implementations
             };
 
             await _repository.TaoNhanVienAsync(taiKhoan, nhanVien);
+            return (true, null);
+        } */
+
+        public async Task<(bool Success, string? ErrorMessage)> TaoNhanVienAsync(
+            TaoTaiKhoanNhanVienDto dto)
+        {
+            dto.TenDangNhap = dto.TenDangNhap?.Trim() ?? string.Empty;
+            dto.Email = dto.Email?.Trim() ?? string.Empty;
+            dto.HoTen = dto.HoTen?.Trim() ?? string.Empty;
+            dto.TenVaiTro = dto.TenVaiTro?.Trim() ?? string.Empty;
+            dto.SoDienThoai = dto.SoDienThoai?.Trim();
+            dto.ChucVu = dto.ChucVu?.Trim();
+
+            if (string.IsNullOrWhiteSpace(dto.TenDangNhap))
+                return (false, "Tên đăng nhập không được để trống.");
+
+            if (string.IsNullOrWhiteSpace(dto.MatKhau))
+                return (false, "Mật khẩu không được để trống.");
+
+            if (dto.MatKhau.Length < 6)
+                return (false, "Mật khẩu phải có ít nhất 6 ký tự.");
+
+            if (string.IsNullOrWhiteSpace(dto.Email))
+                return (false, "Email không được để trống.");
+
+            if (string.IsNullOrWhiteSpace(dto.HoTen))
+                return (false, "Họ tên không được để trống.");
+
+            // Hệ thống chỉ có một Admin tổng.
+            // API này chỉ dùng để tạo Nhân viên hoặc Chủ cửa hàng.
+            if (dto.TenVaiTro != "NhanVien" &&
+                dto.TenVaiTro != "ChuCuaHang")
+            {
+                return (
+                    false,
+                    "Vai trò không hợp lệ. Chỉ chấp nhận NhanVien hoặc ChuCuaHang."
+                );
+            }
+
+            if (!dto.ChiNhanhId.HasValue)
+            {
+                return (
+                    false,
+                    "Nhân viên và Chủ cửa hàng bắt buộc phải thuộc một chi nhánh."
+                );
+            }
+
+            if (!await _repository.ChiNhanhExistsAsync(dto.ChiNhanhId.Value))
+                return (false, "Chi nhánh không tồn tại.");
+
+            if (await _repository.TenDangNhapExistsAsync(dto.TenDangNhap))
+                return (false, "Tên đăng nhập đã tồn tại.");
+
+            if (await _repository.EmailExistsAsync(dto.Email))
+                return (false, "Email đã được sử dụng.");
+
+            var vaiTroId = await _repository.GetVaiTroIdAsync(dto.TenVaiTro);
+
+            if (!vaiTroId.HasValue)
+                return (false, "Không tìm thấy vai trò trong hệ thống.");
+
+            var taiKhoan = new TaiKhoan
+            {
+                TenDangNhap = dto.TenDangNhap,
+                MatKhauHash = BCrypt.Net.BCrypt.HashPassword(dto.MatKhau),
+                Email = dto.Email,
+                SoDienThoai = dto.SoDienThoai,
+                VaiTroId = vaiTroId.Value,
+                TrangThai = true,
+                NgayTao = DateTime.Now
+            };
+
+            var nhanVien = new NhanVien
+            {
+                HoTen = dto.HoTen,
+                ChucVu = dto.ChucVu,
+                ChiNhanhId = dto.ChiNhanhId.Value,
+                NgayVaoLam = DateOnly.FromDateTime(DateTime.Now)
+            };
+
+            await _repository.TaoNhanVienAsync(taiKhoan, nhanVien);
+
             return (true, null);
         }
 
@@ -144,6 +223,8 @@ namespace TraSayKho.API.Services.Implementations
                 TenDangNhap = taiKhoan.TenDangNhap,
                 HoTen = hoTen,
                 VaiTro = taiKhoan.VaiTro.TenVaiTro,
+                KhachHangId = taiKhoan.KhachHang?.KhachHangId,
+                NhanVienId = taiKhoan.NhanVien?.NhanVienId,
                 ChiNhanhId = chiNhanhId,
                 TenChiNhanh = tenChiNhanh,
                 ThoiGianHetHan = thoiGianHetHan
@@ -167,6 +248,12 @@ namespace TraSayKho.API.Services.Implementations
 
             if (chiNhanhId.HasValue)
                 claims.Add(new Claim("ChiNhanhId", chiNhanhId.Value.ToString()));
+
+            if (taiKhoan.KhachHang != null)
+                claims.Add(new Claim("KhachHangId", taiKhoan.KhachHang.KhachHangId.ToString()));
+
+            if (taiKhoan.NhanVien != null)
+                claims.Add(new Claim("NhanVienId", taiKhoan.NhanVien.NhanVienId.ToString()));
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

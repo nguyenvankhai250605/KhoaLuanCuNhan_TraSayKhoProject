@@ -18,7 +18,7 @@ namespace TraSayKho.API.DTOs
         public decimal GiaBan { get; set; }
         public int SoLuongTon { get; set; }
         public string? DonViTinh { get; set; }
-        public DateOnly? HanSuDung { get; set; }
+        //public DateOnly? HanSuDung { get; set; }
     }
 
     public class SanPhamUpdateDto
@@ -30,7 +30,7 @@ namespace TraSayKho.API.DTOs
         public decimal GiaBan { get; set; }
         public int SoLuongTon { get; set; }
         public string? DonViTinh { get; set; }
-        public DateOnly? HanSuDung { get; set; }
+        //public DateOnly? HanSuDung { get; set; }
         public string TrangThai { get; set; } = "DangBan";
     }
 }

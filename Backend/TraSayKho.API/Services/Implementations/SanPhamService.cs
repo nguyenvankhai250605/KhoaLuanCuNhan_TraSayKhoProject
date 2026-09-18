@@ -43,7 +43,7 @@ namespace TraSayKho.API.Services.Implementations
                 GiaBan = dto.GiaBan,
                 SoLuongTon = dto.SoLuongTon,
                 DonViTinh = dto.DonViTinh,
-                HanSuDung = dto.HanSuDung,
+                //HanSuDung = dto.HanSuDung,
                 TrangThai = "DangBan"
             };
 
@@ -72,7 +72,7 @@ namespace TraSayKho.API.Services.Implementations
                 GiaBan = dto.GiaBan,
                 SoLuongTon = dto.SoLuongTon,
                 DonViTinh = dto.DonViTinh,
-                HanSuDung = dto.HanSuDung,
+                //HanSuDung = dto.HanSuDung,
                 TrangThai = dto.TrangThai
             };
 

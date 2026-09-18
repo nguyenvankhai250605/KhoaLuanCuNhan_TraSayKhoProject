@@ -6,7 +6,6 @@ namespace TraSayKho.API.Controllers
 {
     [ApiController]
     [Route("api/SanPham/{sanPhamId}/[controller]")]
-    [Authorize(Roles = "Admin,NhanVien")]
     public class HinhAnhSanPhamController : ControllerBase
     {
         private readonly IHinhAnhSanPhamService _service;
@@ -14,6 +13,7 @@ namespace TraSayKho.API.Controllers
 
         // GET: api/SanPham/5/HinhAnhSanPham
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetBySanPham(int sanPhamId)
         {
             return Ok(await _service.GetBySanPhamIdAsync(sanPhamId));
@@ -21,6 +21,7 @@ namespace TraSayKho.API.Controllers
 
         // POST: api/SanPham/5/HinhAnhSanPham
         [HttpPost]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> Upload(int sanPhamId, IFormFile file, [FromForm] int thuTuHienThi = 0)
         {
             var (success, errorMessage, result) = await _service.UploadAsync(sanPhamId, file, thuTuHienThi);
@@ -30,6 +31,7 @@ namespace TraSayKho.API.Controllers
 
         // DELETE: api/SanPham/5/HinhAnhSanPham/{id}
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> Delete(int sanPhamId, int id)
         {
             var success = await _service.DeleteAsync(id);

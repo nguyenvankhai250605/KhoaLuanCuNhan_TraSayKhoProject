@@ -5,14 +5,28 @@ namespace TraSayKho.API.Repositories.Interfaces
     public interface ILoHangRepository
     {
         Task<bool> SanPhamExistsAsync(int sanPhamId);
-        Task<bool> ChiNhanhExistsAsync(int chiNhanhId);
+
+        Task<bool> SoLoExistsAsync(string soLo);
+
         Task<List<LoHang>> GetAllAsync();
+
         Task<LoHang?> GetByIdAsync(int id);
+
         Task<List<LoHang>> GetBySanPhamAsync(int sanPhamId);
-        Task<List<LoHang>> GetSapHetHanAsync(int soNgayNguong);
-        Task<LoHang> AddAsync(LoHang loHang);
-        Task<bool> UpdateXaKhoAsync(int loHangId, decimal? mucGiam, DateOnly? tuNgay, DateOnly? denNgay);
+
+        Task<List<LoHang>> GetSapHetHanAsync();
+
+        Task<LoHang> TaoLoVaPhanBoAsync(
+            LoHang loHang,
+            int chiNhanhChinhId,
+            int soLuongThung,
+            int soDonViMoiThung);
+
         Task DongBoTonKhoSanPhamAsync(int sanPhamId);
-        Task<bool> DieuChinhSoLuongConLaiAsync(int loHangId, int soLuongThayDoi);
+
+        Task<DonViSanPham?>
+            GetDonViSanPhamByMaAsync(string maDonVi);
+
+        Task<ChiNhanh?> GetTruSoChinhAsync();
     }
 }

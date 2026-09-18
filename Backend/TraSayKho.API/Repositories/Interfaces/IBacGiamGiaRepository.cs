@@ -7,6 +7,7 @@ namespace TraSayKho.API.Repositories.Interfaces
         Task<List<BacGiamGiaXaKho>> GetAllAsync();
         Task<List<BacGiamGiaXaKho>> GetDangHoatDongAsync();
         Task<BacGiamGiaXaKho?> GetByIdAsync(int id);
+        Task<bool> DanhMucExistsAsync(int danhMucId);
         Task<BacGiamGiaXaKho> AddAsync(BacGiamGiaXaKho bac);
         Task<bool> UpdateAsync(int id, BacGiamGiaXaKho bac);
         Task<bool> SoftDeleteAsync(int id);

@@ -6,6 +6,8 @@ namespace TraSayKho.API.Services.Interfaces
     {
         Task<List<DanhGiaDto>> GetAllAsync();
         Task<DanhGiaDto?> GetByIdAsync(int id);
+        Task<(bool Success, string? ErrorMessage, DanhGiaDto? Result)> CreateAsync(
+            int khachHangId, DanhGiaCreateDto dto);
         Task<bool> DeleteAsync(int id);
     }
 }

@@ -43,7 +43,7 @@ namespace TraSayKho.API.Repositories.Implementations
             existing.GiaBan = sanPham.GiaBan;
             existing.SoLuongTon = sanPham.SoLuongTon;
             existing.DonViTinh = sanPham.DonViTinh;
-            existing.HanSuDung = sanPham.HanSuDung;
+            //existing.HanSuDung = sanPham.HanSuDung;
             existing.TrangThai = sanPham.TrangThai;
 
             await _context.SaveChangesAsync();

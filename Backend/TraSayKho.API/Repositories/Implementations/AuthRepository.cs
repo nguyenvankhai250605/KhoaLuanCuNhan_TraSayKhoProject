@@ -31,7 +31,7 @@ namespace TraSayKho.API.Repositories.Implementations
             return vaiTro?.VaiTroId;
         }
 
-        public async Task<TaiKhoan> DangKyKhachHangAsync(TaiKhoan taiKhoan, KhachHang khachHang)
+        /* public async Task<TaiKhoan> DangKyKhachHangAsync(TaiKhoan taiKhoan, KhachHang khachHang)
         {
             _context.TaiKhoans.Add(taiKhoan);
             await _context.SaveChangesAsync();   // lưu trước để có TaiKhoanId
@@ -53,7 +53,59 @@ namespace TraSayKho.API.Repositories.Implementations
             await _context.SaveChangesAsync();
 
             return taiKhoan;
+        } */
+
+        public async Task<TaiKhoan> DangKyKhachHangAsync(
+            TaiKhoan taiKhoan,
+            KhachHang khachHang)
+        {
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                _context.TaiKhoans.Add(taiKhoan);
+                await _context.SaveChangesAsync();
+
+                khachHang.TaiKhoanId = taiKhoan.TaiKhoanId;
+                _context.KhachHangs.Add(khachHang);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+                return taiKhoan;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
+
+        public async Task<TaiKhoan> TaoNhanVienAsync(
+            TaiKhoan taiKhoan,
+            NhanVien nhanVien)
+        {
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                _context.TaiKhoans.Add(taiKhoan);
+                await _context.SaveChangesAsync();
+
+                nhanVien.TaiKhoanId = taiKhoan.TaiKhoanId;
+                _context.NhanViens.Add(nhanVien);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+                return taiKhoan;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }        
 
         public async Task<TaiKhoan?> GetTaiKhoanDayDuAsync(string tenDangNhap)
         {

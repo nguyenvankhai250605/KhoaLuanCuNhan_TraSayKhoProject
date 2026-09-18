@@ -10,6 +10,18 @@ namespace TraSayKho.API.Helpers
             return int.TryParse(value, out var id) ? id : null;
         }
 
+        public static int? GetKhachHangId(this ClaimsPrincipal user)
+        {
+            var value = user.FindFirst("KhachHangId")?.Value;
+            return int.TryParse(value, out var id) ? id : null;
+        }
+
+        public static int? GetNhanVienId(this ClaimsPrincipal user)
+        {
+            var value = user.FindFirst("NhanVienId")?.Value;
+            return int.TryParse(value, out var id) ? id : null;
+        }
+
         public static bool LaAdmin(this ClaimsPrincipal user)
         {
             return user.IsInRole("Admin");

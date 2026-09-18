@@ -36,6 +36,8 @@ namespace TraSayKho.API.DTOs
         public string TenDangNhap { get; set; } = string.Empty;
         public string HoTen { get; set; } = string.Empty;
         public string VaiTro { get; set; } = string.Empty;
+        public int? KhachHangId { get; set; }
+        public int? NhanVienId { get; set; }
         public int? ChiNhanhId { get; set; }
         public string? TenChiNhanh { get; set; }
         public DateTime ThoiGianHetHan { get; set; }

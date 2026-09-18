@@ -26,6 +26,27 @@ namespace TraSayKho.API.Repositories.Implementations
                 .FirstOrDefaultAsync(dg => dg.DanhGiaId == id);
         }
 
+        public async Task<DonHang?> GetDonHangAsync(int donHangId)
+        {
+            return await _context.DonHangs
+                .Include(dh => dh.TrangThai)
+                .Include(dh => dh.ChiTietDonHangs)
+                .FirstOrDefaultAsync(dh => dh.DonHangId == donHangId);
+        }
+
+        public Task<bool> ExistsAsync(int donHangId, int sanPhamId)
+        {
+            return _context.DanhGia.AnyAsync(dg =>
+                dg.DonHangId == donHangId && dg.SanPhamId == sanPhamId);
+        }
+
+        public async Task<DanhGium> CreateAsync(DanhGium danhGia)
+        {
+            _context.DanhGia.Add(danhGia);
+            await _context.SaveChangesAsync();
+            return (await GetByIdAsync(danhGia.DanhGiaId))!;
+        }
+
         public async Task<bool> DeleteAsync(int id)
         {
             var existing = await _context.DanhGia.FindAsync(id);

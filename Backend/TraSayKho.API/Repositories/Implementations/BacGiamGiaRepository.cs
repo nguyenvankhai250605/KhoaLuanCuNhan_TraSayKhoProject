@@ -13,7 +13,9 @@ namespace TraSayKho.API.Repositories.Implementations
         public async Task<List<BacGiamGiaXaKho>> GetAllAsync()
         {
             return await _context.BacGiamGiaXaKhos
-                .OrderBy(b => b.SoNgayConLaiToiDa)
+                .Include(b => b.DanhMuc)
+                .OrderBy(b => b.DanhMucId)
+                .ThenBy(b => b.PhanTramThoiGianConLaiToiDa)
                 .ToListAsync();
         }
 
@@ -21,13 +23,18 @@ namespace TraSayKho.API.Repositories.Implementations
         {
             return await _context.BacGiamGiaXaKhos
                 .Where(b => b.TrangThai)
-                .OrderBy(b => b.SoNgayConLaiToiDa)   // sắp từ bậc gấp nhất (ít ngày nhất) tới xa nhất
+                .OrderBy(b => b.PhanTramThoiGianConLaiToiDa)   // % nhỏ nhất (gấp nhất) đứng trước
                 .ToListAsync();
         }
 
         public async Task<BacGiamGiaXaKho?> GetByIdAsync(int id)
         {
             return await _context.BacGiamGiaXaKhos.FirstOrDefaultAsync(b => b.BacGiamGiaId == id);
+        }
+
+        public async Task<bool> DanhMucExistsAsync(int danhMucId)
+        {
+            return await _context.DanhMucs.AnyAsync(dm => dm.DanhMucId == danhMucId);
         }
 
         public async Task<BacGiamGiaXaKho> AddAsync(BacGiamGiaXaKho bac)
@@ -42,8 +49,9 @@ namespace TraSayKho.API.Repositories.Implementations
             var existing = await _context.BacGiamGiaXaKhos.FindAsync(id);
             if (existing == null) return false;
 
+            existing.DanhMucId = bac.DanhMucId;
             existing.TenBac = bac.TenBac;
-            existing.SoNgayConLaiToiDa = bac.SoNgayConLaiToiDa;
+            existing.PhanTramThoiGianConLaiToiDa = bac.PhanTramThoiGianConLaiToiDa;
             existing.MucGiamGiaPhanTram = bac.MucGiamGiaPhanTram;
             existing.TrangThai = bac.TrangThai;
 

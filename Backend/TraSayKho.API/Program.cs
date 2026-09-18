@@ -32,6 +32,7 @@ builder.Services.AddScoped<IPhieuDieuChuyenRepository, PhieuDieuChuyenRepository
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IBacGiamGiaRepository, BacGiamGiaRepository>();
 builder.Services.AddScoped<IGioHangRepository, GioHangRepository>();
+builder.Services.AddScoped<IHanMucRepository, HanMucRepository>();
 
 // ==== ĐĂNG KÝ SERVICE ====
 builder.Services.AddScoped<ISanPhamService, SanPhamService>();
@@ -50,6 +51,7 @@ builder.Services.AddScoped<IPhieuDieuChuyenService, PhieuDieuChuyenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IBacGiamGiaService, BacGiamGiaService>();
 builder.Services.AddScoped<IGioHangService, GioHangService>();
+builder.Services.AddScoped<IHanMucService, HanMucService>();
 
 // Add services to the container.
 builder.Services.AddControllers();

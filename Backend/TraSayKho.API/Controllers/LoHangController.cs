@@ -8,124 +8,265 @@ namespace TraSayKho.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin,NhanVien,ChuCuaHang")]
+    [Authorize(
+        Roles = "Admin,NhanVien,ChuCuaHang")]
     public class LoHangController : ControllerBase
     {
         private readonly ILoHangService _service;
-        public LoHangController(ILoHangService service) => _service = service;
+
+        public LoHangController(
+            ILoHangService service)
+        {
+            _service = service;
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var list = await _service.GetAllAsync();
+            var list =
+                await _service.GetAllAsync();
 
             if (!User.CoQuyenXemToanHeThong())
             {
-                var chiNhanhId = User.GetChiNhanhId();
-                list = list.Where(lh => lh.ChiNhanhId == chiNhanhId).ToList();
+                var chiNhanhId =
+                    User.GetChiNhanhId();
+
+                if (!chiNhanhId.HasValue)
+                    return Forbid();
+
+                list = LocDanhSachTheoChiNhanh(
+                    list,
+                    chiNhanhId.Value);
             }
 
             return Ok(list);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult>
+            GetById(int id)
         {
-            var result = await _service.GetByIdAsync(id);
-            if (result == null) return NotFound(new { message = "Không tìm thấy lô hàng." });
+            var result =
+                await _service
+                    .GetByIdAsync(id);
 
-            if (!User.DuocPhepThaoTacChiNhanh(result.ChiNhanhId))
-                return Forbid();
+            if (result == null)
+            {
+                return NotFound(new
+                {
+                    message =
+                        "Không tìm thấy lô hàng."
+                });
+            }
+
+            if (!User.CoQuyenXemToanHeThong())
+            {
+                var chiNhanhId =
+                    User.GetChiNhanhId();
+
+                if (!chiNhanhId.HasValue)
+                    return Forbid();
+
+                result.DanhSachThung =
+                    result.DanhSachThung
+                        .Where(t =>
+                            t.ChiNhanhId ==
+                            chiNhanhId.Value)
+                        .ToList();
+
+                if (result.DanhSachThung.Count == 0)
+                    return Forbid();
+
+                result.TongSoLuongConKho =
+                    result.DanhSachThung
+                        .Sum(t =>
+                            t.SoLuongConKho);
+            }
 
             return Ok(result);
         }
 
-        [HttpGet("sanpham/{sanPhamId}")]
-        public async Task<IActionResult> GetBySanPham(int sanPhamId)
+        [HttpGet(
+            "sanpham/{sanPhamId:int}")]
+        public async Task<IActionResult>
+            GetBySanPham(int sanPhamId)
         {
-            var list = await _service.GetBySanPhamAsync(sanPhamId);
+            var list =
+                await _service
+                    .GetBySanPhamAsync(
+                        sanPhamId);
 
             if (!User.CoQuyenXemToanHeThong())
             {
-                var chiNhanhId = User.GetChiNhanhId();
-                list = list.Where(lh => lh.ChiNhanhId == chiNhanhId).ToList();
+                var chiNhanhId =
+                    User.GetChiNhanhId();
+
+                if (!chiNhanhId.HasValue)
+                    return Forbid();
+
+                list = LocDanhSachTheoChiNhanh(
+                    list,
+                    chiNhanhId.Value);
             }
 
             return Ok(list);
         }
 
         [HttpGet("saphethan")]
-        public async Task<IActionResult> GetSapHetHan([FromQuery] int soNgay = 30)
+        public async Task<IActionResult>
+            GetSapHetHan(
+                [FromQuery] int phanTram = 25)
         {
-            var list = await _service.GetSapHetHanAsync(soNgay);
+            var list =
+                await _service
+                    .GetSapHetHanAsync(
+                        phanTram);
 
             if (!User.CoQuyenXemToanHeThong())
             {
-                var chiNhanhId = User.GetChiNhanhId();
-                list = list.Where(lh => lh.ChiNhanhId == chiNhanhId).ToList();
+                var chiNhanhId =
+                    User.GetChiNhanhId();
+
+                if (!chiNhanhId.HasValue)
+                    return Forbid();
+
+                list = LocDanhSachTheoChiNhanh(
+                    list,
+                    chiNhanhId.Value);
             }
 
             return Ok(list);
         }
 
-        // Nhập lô mới — CHỈ Quản lý cửa hàng / Admin (không phải việc của Nhân viên)
+        // Chỉ Admin hoặc Chủ cửa hàng thuộc
+        // chi nhánh chính được nhập lô mới.
         [HttpPost]
-        [Authorize(Roles = "Admin,ChuCuaHang")]
-        public async Task<IActionResult> Create([FromBody] LoHangCreateDto dto)
+        [Authorize(
+            Roles = "Admin,ChuCuaHang")]
+        public async Task<IActionResult> Create(
+            [FromBody] LoHangCreateDto dto)
         {
-            if (!User.DuocPhepThaoTacChiNhanh(dto.ChiNhanhId))
-                return Forbid();
+            int? chiNhanhNguoiGoi = null;
 
-            var (success, errorMessage, result) = await _service.CreateAsync(dto);
-            if (!success) return BadRequest(new { message = errorMessage });
-            return CreatedAtAction(nameof(GetById), new { id = result!.LoHangId }, result);
+            if (!User.LaAdmin())
+            {
+                var chiNhanhId =
+                    User.GetChiNhanhId();
+
+                if (!chiNhanhId.HasValue)
+                    return Forbid();
+
+                chiNhanhNguoiGoi =
+                    chiNhanhId.Value;
+            }
+
+            var (
+                success,
+                errorMessage,
+                result
+            ) =
+                await _service.CreateAsync(
+                    dto,
+                    chiNhanhNguoiGoi);
+
+            if (!success)
+            {
+                return BadRequest(new
+                {
+                    message = errorMessage
+                });
+            }
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new
+                {
+                    id = result!.LoHangId
+                },
+                result);
         }
 
-        // Xả kho — CHỈ Quản lý cửa hàng / Admin (quyết định kinh doanh)
-        [HttpPut("{id}/xakho")]
-        [Authorize(Roles = "Admin,ChuCuaHang")]
-        public async Task<IActionResult> BatXaKho(int id, [FromBody] XaKhoDto dto)
+        // Khách hàng có thể truy xuất nguồn gốc,
+        // nhưng thông tin người mua chỉ được trả về
+        // cho nhân viên có quyền quản lý.
+        [HttpGet("truyxuat/{maDonVi}")]
+        [AllowAnonymous]
+        public async Task<IActionResult>
+            TruyXuat(string maDonVi)
         {
-            var loHang = await _service.GetByIdAsync(id);
-            if (loHang == null) return NotFound(new { message = "Không tìm thấy lô hàng." });
+            var (
+                success,
+                errorMessage,
+                result
+            ) =
+                await _service
+                    .TruyXuatTheoMaDonViAsync(
+                        maDonVi);
 
-            if (!User.DuocPhepThaoTacChiNhanh(loHang.ChiNhanhId))
-                return Forbid();
+            if (!success)
+            {
+                return NotFound(new
+                {
+                    message = errorMessage
+                });
+            }
 
-            var (success, errorMessage) = await _service.BatXaKhoAsync(id, dto);
-            if (!success) return BadRequest(new { message = errorMessage });
-            return Ok(new { message = "Đã bật xả kho cho lô hàng." });
+            var laNguoiQuanLy =
+                User.Identity?.IsAuthenticated ==
+                    true &&
+                (
+                    User.IsInRole("Admin") ||
+                    User.IsInRole("NhanVien") ||
+                    User.IsInRole("ChuCuaHang")
+                );
+
+            if (laNguoiQuanLy)
+                return Ok(result);
+
+            // Bản công khai không trả thông tin
+            // khách hàng và mã đơn hàng.
+            return Ok(new
+            {
+                result!.DonViId,
+                result.MaDonVi,
+                result.DonViTinh,
+                result.TrangThaiDonVi,
+                result.MaThung,
+                result.ChiNhanhPhanBoId,
+                result.TenChiNhanhPhanBo,
+                result.SoLo,
+                result.NgaySanXuat,
+                result.HanSuDung,
+                result.SanPhamId,
+                result.TenSanPham
+            });
         }
 
-        [HttpPut("{id}/huyxakho")]
-        [Authorize(Roles = "Admin,ChuCuaHang")]
-        public async Task<IActionResult> HuyXaKho(int id)
+        private static List<LoHangDto>
+            LocDanhSachTheoChiNhanh(
+                IEnumerable<LoHangDto> danhSach,
+                int chiNhanhId)
         {
-            var loHang = await _service.GetByIdAsync(id);
-            if (loHang == null) return NotFound(new { message = "Không tìm thấy lô hàng." });
+            return danhSach
+                .Select(lh =>
+                {
+                    lh.DanhSachThung =
+                        lh.DanhSachThung
+                            .Where(t =>
+                                t.ChiNhanhId ==
+                                chiNhanhId)
+                            .ToList();
 
-            if (!User.DuocPhepThaoTacChiNhanh(loHang.ChiNhanhId))
-                return Forbid();
+                    lh.TongSoLuongConKho =
+                        lh.DanhSachThung
+                            .Sum(t =>
+                                t.SoLuongConKho);
 
-            var (success, errorMessage) = await _service.HuyXaKhoAsync(id);
-            if (!success) return BadRequest(new { message = errorMessage });
-            return Ok(new { message = "Đã hủy xả kho, quay về giá gốc." });
-        }
-
-        // MỚI: Nhân viên điều chỉnh tồn kho vận hành hằng ngày (xuất kho giao hàng, kiểm kê)
-        [HttpPut("{id}/dieuchinhton")]
-        [Authorize(Roles = "Admin,NhanVien")]
-        public async Task<IActionResult> DieuChinhTonKho(int id, [FromBody] DieuChinhTonKhoDto dto)
-        {
-            var loHang = await _service.GetByIdAsync(id);
-            if (loHang == null) return NotFound(new { message = "Không tìm thấy lô hàng." });
-
-            if (!User.DuocPhepThaoTacChiNhanh(loHang.ChiNhanhId))
-                return Forbid();
-
-            var (success, errorMessage) = await _service.DieuChinhTonKhoAsync(id, dto);
-            if (!success) return BadRequest(new { message = errorMessage });
-            return Ok(new { message = "Đã điều chỉnh tồn kho." });
+                    return lh;
+                })
+                .Where(lh =>
+                    lh.DanhSachThung.Count > 0)
+                .ToList();
         }
     }
 }

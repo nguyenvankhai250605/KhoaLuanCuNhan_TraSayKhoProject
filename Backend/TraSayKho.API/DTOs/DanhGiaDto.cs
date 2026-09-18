@@ -1,5 +1,13 @@
 namespace TraSayKho.API.DTOs
 {
+    public class DanhGiaCreateDto
+    {
+        public int DonHangId { get; set; }
+        public int SanPhamId { get; set; }
+        public int SoSao { get; set; }
+        public string? NoiDung { get; set; }
+    }
+
     public class DanhGiaDto
     {
         public int DanhGiaId { get; set; }

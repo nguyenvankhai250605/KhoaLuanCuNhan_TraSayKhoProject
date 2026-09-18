@@ -13,17 +13,22 @@ namespace TraSayKho.API.Controllers
         private readonly IDonHangService _service;
         public DonHangController(IDonHangService service) => _service = service;
 
-        // Tạo đơn hàng KHÔNG cần đăng nhập Admin/NhanVien — đây là API khách hàng gọi khi đặt hàng qua app
         [HttpPost]
+        [Authorize(Roles = "KhachHang")]
         public async Task<IActionResult> Create([FromBody] DonHangCreateDto dto)
         {
+            var khachHangId = User.GetKhachHangId();
+            if (!khachHangId.HasValue) return Forbid();
+
+            // Không tin KhachHangId do client gửi lên; luôn dùng ID trong JWT.
+            dto.KhachHangId = khachHangId.Value;
             var (success, errorMessage, result) = await _service.TaoDonHangAsync(dto);
             if (!success) return BadRequest(new { message = errorMessage });
             return CreatedAtAction(nameof(GetById), new { id = result!.DonHangId }, result);
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,NhanVien")]
+        [Authorize(Roles = "Admin,NhanVien,ChuCuaHang")]
         public async Task<IActionResult> GetAll()
         {
             var list = await _service.GetAllAsync();
@@ -38,7 +43,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin,NhanVien")]
+        [Authorize(Roles = "Admin,NhanVien,ChuCuaHang")]
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
@@ -54,7 +59,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpPut("{id}/trangthai")]
-        [Authorize(Roles = "Admin,NhanVien")]
+        [Authorize(Roles = "Admin,NhanVien,ChuCuaHang")]
         public async Task<IActionResult> CapNhatTrangThai(int id, [FromBody] CapNhatTrangThaiDto dto)
         {
             var donHang = await _service.GetByIdAsync(id);

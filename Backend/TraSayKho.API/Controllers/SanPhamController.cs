@@ -7,16 +7,17 @@ namespace TraSayKho.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin,NhanVien")]
     public class SanPhamController : ControllerBase
     {
         private readonly ISanPhamService _service;
         public SanPhamController(ISanPhamService service) => _service = service;
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync());
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
@@ -25,6 +26,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> Create([FromBody] SanPhamCreateDto dto)
         {
             var (success, errorMessage, result) = await _service.CreateAsync(dto);
@@ -33,6 +35,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> Update(int id, [FromBody] SanPhamUpdateDto dto)
         {
             var (success, errorMessage) = await _service.UpdateAsync(id, dto);
@@ -41,6 +44,7 @@ namespace TraSayKho.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,ChuCuaHang")]
         public async Task<IActionResult> Delete(int id)
         {
             var success = await _service.SoftDeleteAsync(id);

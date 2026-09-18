@@ -21,22 +21,27 @@ namespace TraSayKho.API.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.TenBac))
                 return (false, "Tên bậc không được để trống.", null);
 
-            if (dto.SoNgayConLaiToiDa <= 0)
-                return (false, "Số ngày còn lại tối đa phải lớn hơn 0.", null);
+            if (dto.PhanTramThoiGianConLaiToiDa <= 0 || dto.PhanTramThoiGianConLaiToiDa > 100)
+                return (false, "Phần trăm thời gian còn lại phải trong khoảng 0-100.", null);
 
             if (dto.MucGiamGiaPhanTram <= 0 || dto.MucGiamGiaPhanTram > 100)
                 return (false, "Mức giảm giá phải trong khoảng 0-100%.", null);
 
+            if (dto.DanhMucId.HasValue && !await _repository.DanhMucExistsAsync(dto.DanhMucId.Value))
+                return (false, "Danh mục không tồn tại.", null);
+
             var bac = new BacGiamGiaXaKho
             {
+                DanhMucId = dto.DanhMucId,
                 TenBac = dto.TenBac,
-                SoNgayConLaiToiDa = dto.SoNgayConLaiToiDa,
+                PhanTramThoiGianConLaiToiDa = dto.PhanTramThoiGianConLaiToiDa,
                 MucGiamGiaPhanTram = dto.MucGiamGiaPhanTram,
                 TrangThai = true
             };
 
             var created = await _repository.AddAsync(bac);
-            return (true, null, MapToDto(created));
+            var full = await _repository.GetByIdAsync(created.BacGiamGiaId);
+            return (true, null, MapToDto(full!));
         }
 
         public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(int id, BacGiamGiaUpdateDto dto)
@@ -44,17 +49,21 @@ namespace TraSayKho.API.Services.Implementations
             if (string.IsNullOrWhiteSpace(dto.TenBac))
                 return (false, "Tên bậc không được để trống.");
 
-            if (dto.SoNgayConLaiToiDa <= 0)
-                return (false, "Số ngày còn lại tối đa phải lớn hơn 0.");
+            if (dto.PhanTramThoiGianConLaiToiDa <= 0 || dto.PhanTramThoiGianConLaiToiDa > 100)
+                return (false, "Phần trăm thời gian còn lại phải trong khoảng 0-100.");
 
             if (dto.MucGiamGiaPhanTram <= 0 || dto.MucGiamGiaPhanTram > 100)
                 return (false, "Mức giảm giá phải trong khoảng 0-100%.");
 
+            if (dto.DanhMucId.HasValue && !await _repository.DanhMucExistsAsync(dto.DanhMucId.Value))
+                return (false, "Danh mục không tồn tại.");
+
             var bac = new BacGiamGiaXaKho
             {
                 BacGiamGiaId = id,
+                DanhMucId = dto.DanhMucId,
                 TenBac = dto.TenBac,
-                SoNgayConLaiToiDa = dto.SoNgayConLaiToiDa,
+                PhanTramThoiGianConLaiToiDa = dto.PhanTramThoiGianConLaiToiDa,
                 MucGiamGiaPhanTram = dto.MucGiamGiaPhanTram,
                 TrangThai = dto.TrangThai
             };
@@ -71,8 +80,10 @@ namespace TraSayKho.API.Services.Implementations
         private static BacGiamGiaDto MapToDto(BacGiamGiaXaKho b) => new()
         {
             BacGiamGiaId = b.BacGiamGiaId,
+            DanhMucId = b.DanhMucId,
+            TenDanhMuc = b.DanhMuc?.TenDanhMuc,
             TenBac = b.TenBac,
-            SoNgayConLaiToiDa = b.SoNgayConLaiToiDa,
+            PhanTramThoiGianConLaiToiDa = b.PhanTramThoiGianConLaiToiDa,
             MucGiamGiaPhanTram = b.MucGiamGiaPhanTram,
             TrangThai = b.TrangThai
         };

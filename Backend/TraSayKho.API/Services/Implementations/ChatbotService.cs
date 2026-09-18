@@ -102,6 +102,12 @@ namespace TraSayKho.API.Services.Implementations
             return success ? (true, null) : (false, "Không thể kết thúc phiên trò chuyện.");
         }
 
+        public async Task<bool> CuocHoiThoaiThuocKhachHangAsync(int cuocHoiThoaiId, int khachHangId)
+        {
+            var cuocHoiThoai = await _repository.GetCuocHoiThoaiByIdAsync(cuocHoiThoaiId);
+            return cuocHoiThoai != null && cuocHoiThoai.KhachHangId == khachHangId;
+        }
+
         // ==== Logic quyết định: dùng lại cuộc hội thoại cũ, hay tạo mới ====
         private async Task<CuocHoiThoai> LayHoacTaoCuocHoiThoaiAsync(int khachHangId)
         {
